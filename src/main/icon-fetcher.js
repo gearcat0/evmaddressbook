@@ -9,8 +9,10 @@ function getIconsDir() {
 
 export function getIconPath(chainId) {
   const iconsDir = getIconsDir()
-  const chainPath = path.join(iconsDir, `${chainId}.png`)
-  if (fs.existsSync(chainPath)) return chainPath
+  for (const ext of ['.png', '.svg']) {
+    const p = path.join(iconsDir, `${chainId}${ext}`)
+    if (fs.existsSync(p)) return p
+  }
   const defaultPath = path.join(iconsDir, 'default.png')
   if (fs.existsSync(defaultPath)) return defaultPath
   return null
@@ -97,11 +99,29 @@ async function fetchJson(url) {
   return response.json()
 }
 
-async function downloadImage(url, destPath) {
+function detectImageType(buffer) {
+  if (buffer.length < 4) return null
+  // PNG: 89 50 4E 47
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) return 'png'
+  // JPEG: FF D8 FF
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) return 'jpeg'
+  // SVG: look for <svg or <?xml in first 256 bytes
+  const head = buffer.subarray(0, Math.min(buffer.length, 256)).toString('utf-8')
+  if (head.includes('<svg') || (head.includes('<?xml') && head.includes('<svg'))) return 'svg'
+  return null
+}
+
+async function downloadImage(url, destDir, chainId) {
   const response = await fetch(url, { redirect: 'follow' })
   if (!response.ok) return false
   const buffer = Buffer.from(await response.arrayBuffer())
-  fs.writeFileSync(destPath, buffer)
+  const type = detectImageType(buffer)
+  if (!type) {
+    debug(`Rejected non-image content for chain ${chainId} (${buffer.subarray(0, 20).toString('utf-8').trim()})`)
+    return false
+  }
+  const ext = type === 'svg' ? '.svg' : '.png'
+  fs.writeFileSync(path.join(destDir, `${chainId}${ext}`), buffer)
   return true
 }
 
@@ -142,10 +162,11 @@ export async function fetchAndStoreIcons(chains) {
   const chainIds = chains.map(c => c.chainid || c.chainId)
 
   for (const chainId of chainIds) {
-    const destPath = path.join(iconsDir, `${chainId}.png`)
+    // Skip if already downloaded (check both extensions)
+    if (fs.existsSync(path.join(iconsDir, `${chainId}.png`)) ||
+        fs.existsSync(path.join(iconsDir, `${chainId}.svg`))) continue
 
-    // Skip if already downloaded
-    if (fs.existsSync(destPath)) continue
+    const destPath = path.join(iconsDir, `${chainId}.png`)
 
     const iconName = iconNameMap[chainId]
     if (!iconName) {
@@ -176,7 +197,7 @@ export async function fetchAndStoreIcons(chains) {
       const cid = ipfsUrl.replace('ipfs://', '').replace(/^\//, '')
       const downloadUrl = `${IPFS_GATEWAY}/${cid}`
 
-      const ok = await downloadImage(downloadUrl, destPath)
+      const ok = await downloadImage(downloadUrl, iconsDir, chainId)
       if (!ok) {
         fs.copyFileSync(defaultPath, destPath)
         debug(`Failed to download icon for chain ${chainId}`)
