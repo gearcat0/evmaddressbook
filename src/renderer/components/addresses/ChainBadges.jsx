@@ -16,7 +16,6 @@ export default function ChainBadges({ activeChains, chains }) {
       {activeChains.map(chainId => (
         <span key={chainId} className="chain-badge" title={chainMap[chainId] || `Chain ${chainId}`}>
           <ChainIcon chainId={chainId} size={14} />
-          {chainMap[chainId] || chainId}
         </span>
       ))}
     </div>
