@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen } from 'electron'
+import { app, BrowserWindow, screen, shell } from 'electron'
 import path from 'path'
 import { handleCli } from './cli'
 import { registerIpcHandlers } from './ipc-handlers'
@@ -25,6 +25,11 @@ function createWindow() {
     },
     title: 'EVM Address Book',
     backgroundColor: '#1a1a2e'
+  })
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: 'deny' }
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {

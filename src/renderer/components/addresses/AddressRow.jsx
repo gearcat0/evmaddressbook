@@ -41,7 +41,7 @@ export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, 
             </span>
           </div>
         ) : (
-          <ChainBadges activeChains={entry.activeChains} chains={chains} />
+          <ChainBadges activeChains={entry.activeChains} chains={chains} address={entry.address} />
         )}
       </td>
       <td>
