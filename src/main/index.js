@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, screen } from 'electron'
 import path from 'path'
 import { handleCli } from './cli'
 import { registerIpcHandlers } from './ipc-handlers'
@@ -6,15 +6,22 @@ import { registerIpcHandlers } from './ipc-handlers'
 let mainWindow
 
 function createWindow() {
+  const scaleFactor = screen.getPrimaryDisplay().scaleFactor
+  const hiDpi = scaleFactor > 1
+  const width = hiDpi ? 1200 : 1000
+  const height = hiDpi ? 850 : 700
+  const zoomFactor = hiDpi ? 1.25 : 1
+
   mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 700,
+    width,
+    height,
     minWidth: 800,
     minHeight: 500,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      zoomFactor
     },
     title: 'EVM Address Book',
     backgroundColor: '#1a1a2e'
