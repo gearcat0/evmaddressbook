@@ -18,7 +18,47 @@ export function getIconPath(chainId) {
   return null
 }
 
-export function generateCheckerboardPng() {
+// 5x7 bitmap font for A-Z and 0-9 (each row is 5 bits wide, MSB = left)
+const FONT = {
+  A: [0x0E, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11],
+  B: [0x1E, 0x11, 0x11, 0x1E, 0x11, 0x11, 0x1E],
+  C: [0x0E, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0E],
+  D: [0x1C, 0x12, 0x11, 0x11, 0x11, 0x12, 0x1C],
+  E: [0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x1F],
+  F: [0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x10],
+  G: [0x0E, 0x11, 0x10, 0x17, 0x11, 0x11, 0x0E],
+  H: [0x11, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11],
+  I: [0x0E, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0E],
+  J: [0x07, 0x02, 0x02, 0x02, 0x02, 0x12, 0x0C],
+  K: [0x11, 0x12, 0x14, 0x18, 0x14, 0x12, 0x11],
+  L: [0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1F],
+  M: [0x11, 0x1B, 0x15, 0x15, 0x11, 0x11, 0x11],
+  N: [0x11, 0x11, 0x19, 0x15, 0x13, 0x11, 0x11],
+  O: [0x0E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E],
+  P: [0x1E, 0x11, 0x11, 0x1E, 0x10, 0x10, 0x10],
+  Q: [0x0E, 0x11, 0x11, 0x11, 0x15, 0x12, 0x0D],
+  R: [0x1E, 0x11, 0x11, 0x1E, 0x14, 0x12, 0x11],
+  S: [0x0E, 0x11, 0x10, 0x0E, 0x01, 0x11, 0x0E],
+  T: [0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04],
+  U: [0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E],
+  V: [0x11, 0x11, 0x11, 0x11, 0x11, 0x0A, 0x04],
+  W: [0x11, 0x11, 0x11, 0x15, 0x15, 0x1B, 0x11],
+  X: [0x11, 0x11, 0x0A, 0x04, 0x0A, 0x11, 0x11],
+  Y: [0x11, 0x11, 0x0A, 0x04, 0x04, 0x04, 0x04],
+  Z: [0x1F, 0x01, 0x02, 0x04, 0x08, 0x10, 0x1F],
+  '0': [0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E],
+  '1': [0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E],
+  '2': [0x0E, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1F],
+  '3': [0x1F, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0E],
+  '4': [0x02, 0x06, 0x0A, 0x12, 0x1F, 0x02, 0x02],
+  '5': [0x1F, 0x10, 0x1E, 0x01, 0x01, 0x11, 0x0E],
+  '6': [0x06, 0x08, 0x10, 0x1E, 0x11, 0x11, 0x0E],
+  '7': [0x1F, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08],
+  '8': [0x0E, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x0E],
+  '9': [0x0E, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C]
+}
+
+export function generateCheckerboardPng(letter) {
   const width = 32
   const height = 32
   const squareSize = 4
@@ -34,6 +74,33 @@ export function generateCheckerboardPng() {
       rawData[offset + 1] = grey
       rawData[offset + 2] = grey
       rawData[offset + 3] = 255
+    }
+  }
+
+  // Draw letter if provided
+  const glyph = letter ? FONT[letter.toUpperCase()] : null
+  if (glyph) {
+    const scale = 3
+    const glyphW = 5 * scale  // 15px
+    const glyphH = 7 * scale  // 21px
+    const ox = Math.floor((width - glyphW) / 2)
+    const oy = Math.floor((height - glyphH) / 2)
+    for (let row = 0; row < 7; row++) {
+      for (let col = 0; col < 5; col++) {
+        if (glyph[row] & (0x10 >> col)) {
+          for (let sy = 0; sy < scale; sy++) {
+            for (let sx = 0; sx < scale; sx++) {
+              const px = ox + col * scale + sx
+              const py = oy + row * scale + sy
+              const offset = (py * width + px) * 4
+              rawData[offset] = 255
+              rawData[offset + 1] = 255
+              rawData[offset + 2] = 255
+              rawData[offset + 3] = 255
+            }
+          }
+        }
+      }
     }
   }
 
@@ -159,6 +226,21 @@ export async function fetchAndStoreIcons(chains) {
     }
   }
 
+  // Build chainId → chain name map for letter fallbacks
+  const chainNameMap = {}
+  for (const c of chains) {
+    const id = c.chainid || c.chainId
+    const name = c.chainname || c.chainName || ''
+    if (id && name) chainNameMap[id] = name
+  }
+
+  function writeLetterFallback(chainId) {
+    const name = chainNameMap[chainId] || ''
+    const letter = name.charAt(0) || null
+    const destPath = path.join(iconsDir, `${chainId}.png`)
+    fs.writeFileSync(destPath, generateCheckerboardPng(letter))
+  }
+
   const chainIds = chains.map(c => c.chainid || c.chainId)
 
   for (const chainId of chainIds) {
@@ -166,13 +248,10 @@ export async function fetchAndStoreIcons(chains) {
     if (fs.existsSync(path.join(iconsDir, `${chainId}.png`)) ||
         fs.existsSync(path.join(iconsDir, `${chainId}.svg`))) continue
 
-    const destPath = path.join(iconsDir, `${chainId}.png`)
-
     const iconName = iconNameMap[chainId]
     if (!iconName) {
-      // No icon available — use default
-      fs.copyFileSync(defaultPath, destPath)
-      debug(`No icon mapping for chain ${chainId}, using default`)
+      writeLetterFallback(chainId)
+      debug(`No icon mapping for chain ${chainId}, using letter fallback`)
       continue
     }
 
@@ -182,14 +261,14 @@ export async function fetchAndStoreIcons(chains) {
       const meta = await fetchJson(metaUrl)
 
       if (!meta || !Array.isArray(meta) || meta.length === 0) {
-        fs.copyFileSync(defaultPath, destPath)
+        writeLetterFallback(chainId)
         debug(`No icon metadata for ${iconName} (chain ${chainId})`)
         continue
       }
 
       const ipfsUrl = meta[0]?.url
       if (!ipfsUrl || !ipfsUrl.startsWith('ipfs://')) {
-        fs.copyFileSync(defaultPath, destPath)
+        writeLetterFallback(chainId)
         debug(`Invalid IPFS URL for ${iconName}`)
         continue
       }
@@ -199,13 +278,13 @@ export async function fetchAndStoreIcons(chains) {
 
       const ok = await downloadImage(downloadUrl, iconsDir, chainId)
       if (!ok) {
-        fs.copyFileSync(defaultPath, destPath)
+        writeLetterFallback(chainId)
         debug(`Failed to download icon for chain ${chainId}`)
       } else {
         debug(`Downloaded icon for chain ${chainId} (${iconName})`)
       }
     } catch (err) {
-      fs.copyFileSync(defaultPath, destPath)
+      writeLetterFallback(chainId)
       debug(`Error fetching icon for chain ${chainId}:`, err.message)
     }
   }
