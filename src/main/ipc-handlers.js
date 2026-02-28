@@ -4,6 +4,7 @@ import { IPC, debug } from './constants'
 import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir } from './data-store'
 import { client } from './etherscan-client'
 import { scanAddress } from './chain-scanner'
+import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
 
 export function registerIpcHandlers() {
   ipcMain.handle(IPC.ADDRESSES_LIST, () => {
@@ -58,13 +59,22 @@ export function registerIpcHandlers() {
   })
 
   ipcMain.handle(IPC.CHAINS_LIST, () => {
-    return loadChains()
+    const chains = loadChains()
+    // Trigger icon fetch in background if icons dir doesn't exist but chains do
+    if (chains.length > 0) {
+      const iconsDir = require('path').join(getDataDir(), 'icons', 'chains')
+      if (!require('fs').existsSync(iconsDir)) {
+        fetchAndStoreIcons(chains).catch(err => debug('Background icon fetch failed:', err.message))
+      }
+    }
+    return chains
   })
 
   ipcMain.handle(IPC.CHAINS_REFRESH, async () => {
     const result = await client.fetchChainlist()
     saveChains(result)
     debug('Refreshed chains:', result.length)
+    await fetchAndStoreIcons(result)
     return result
   })
 
@@ -80,6 +90,10 @@ export function registerIpcHandlers() {
     saveSettings(settings)
     debug('Updated settings')
     return settings
+  })
+
+  ipcMain.handle(IPC.CHAINS_ICON_PATH, (_event, chainId) => {
+    return getIconPath(chainId)
   })
 
   ipcMain.handle(IPC.DIALOG_OPEN_DIRECTORY, async () => {

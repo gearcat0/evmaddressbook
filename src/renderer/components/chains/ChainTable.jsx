@@ -1,5 +1,6 @@
 import React from 'react'
 import useSortFilter from '../../hooks/useSortFilter'
+import ChainIcon from '../ChainIcon'
 
 export default function ChainTable({ chains }) {
   const { sorted, filter, setFilter, toggleSort, sortIndicator } = useSortFilter(chains, 'chainid')
@@ -38,14 +39,7 @@ export default function ChainTable({ chains }) {
                 <td>{chain.chainid}</td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <img
-                      src={`https://icons.llamao.fi/icons/chains/rsz_${chain.chainid}.jpg`}
-                      width="18"
-                      height="18"
-                      style={{ borderRadius: '50%' }}
-                      onError={(e) => { e.target.style.display = 'none' }}
-                      alt=""
-                    />
+                    <ChainIcon chainId={chain.chainid} size={18} />
                     {chain.chainname}
                   </div>
                 </td>
