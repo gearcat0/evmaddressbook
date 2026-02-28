@@ -49,6 +49,6 @@ Options:
 
 Environment variables:
   EVMADDRESSBOOK_DATADIR    Override data directory
-  EVMADDRESSBOOK_APIKEY     Override Etherscan API key
+  ETHERSCAN_API_KEY         Override Etherscan API key
   EVMADDRESSBOOKDEBUG=1     Enable debug logging`)
 }

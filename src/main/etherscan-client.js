@@ -7,7 +7,7 @@ class EtherscanClient {
   }
 
   getApiKey() {
-    return process.env.EVMADDRESSBOOK_APIKEY || loadSettings().etherscanApiKey || ''
+    return process.env.ETHERSCAN_API_KEY || loadSettings().etherscanApiKey || ''
   }
 
   async rateLimit() {
