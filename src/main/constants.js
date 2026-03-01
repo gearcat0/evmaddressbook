@@ -14,6 +14,8 @@ export const IPC = {
   SCAN_PROGRESS: 'scan:progress',
   SCAN_COMPLETE: 'scan:complete',
   DIALOG_OPEN_DIRECTORY: 'dialog:openDirectory',
+  CHAINS_UPDATE_RPC: 'chains:updateRpc',
+  CHAINS_FETCH_RPC: 'chains:fetchRpc',
   CHAINS_ICON_PATH: 'chains:iconPath'
 }
 

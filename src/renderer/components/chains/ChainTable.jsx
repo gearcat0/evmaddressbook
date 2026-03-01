@@ -1,8 +1,76 @@
-import React from 'react'
+import React, { useState } from 'react'
 import useSortFilter from '../../hooks/useSortFilter'
 import ChainIcon from '../ChainIcon'
 
-export default function ChainTable({ chains }) {
+function RpcCell({ chain, onUpdateRpc }) {
+  const [value, setValue] = useState(chain.rpcurl || '')
+  const [fetching, setFetching] = useState(false)
+
+  const commit = () => {
+    const trimmed = value.trim()
+    if (trimmed !== (chain.rpcurl || '')) {
+      onUpdateRpc(chain.chainid, trimmed)
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.target.blur()
+    }
+  }
+
+  const handleFetch = async () => {
+    setFetching(true)
+    try {
+      const url = await window.api.fetchChainRpc(chain.chainid)
+      if (url) {
+        setValue(url)
+        onUpdateRpc(chain.chainid, url)
+      }
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={handleKeyDown}
+        placeholder="No RPC URL"
+        style={{
+          flex: 1,
+          padding: '2px 6px',
+          fontSize: 12,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border)',
+          borderRadius: 4,
+          color: 'var(--text-primary)',
+          minWidth: 0
+        }}
+      />
+      <button
+        onClick={handleFetch}
+        disabled={fetching}
+        title="Fetch RPC URL from chainlist.org"
+        style={{
+          padding: '2px 6px',
+          fontSize: 11,
+          whiteSpace: 'nowrap',
+          cursor: fetching ? 'wait' : 'pointer'
+        }}
+        className="btn btn-secondary"
+      >
+        {fetching ? '...' : 'Fetch'}
+      </button>
+    </div>
+  )
+}
+
+export default function ChainTable({ chains, onUpdateRpc }) {
   const { sorted, filter, setFilter, toggleSort, sortIndicator } = useSortFilter(chains, 'chainid')
 
   return (
@@ -31,6 +99,9 @@ export default function ChainTable({ chains }) {
               <th onClick={() => toggleSort('blockexplorer')}>
                 Block Explorer<span className="sort-indicator">{sortIndicator('blockexplorer')}</span>
               </th>
+              <th onClick={() => toggleSort('rpcurl')}>
+                RPC URL<span className="sort-indicator">{sortIndicator('rpcurl')}</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -51,6 +122,9 @@ export default function ChainTable({ chains }) {
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>—</span>
                   )}
+                </td>
+                <td>
+                  <RpcCell chain={chain} onUpdateRpc={onUpdateRpc} />
                 </td>
               </tr>
             ))}

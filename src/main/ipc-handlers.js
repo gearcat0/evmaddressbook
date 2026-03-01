@@ -1,10 +1,42 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { getAddress } from 'ethers'
-import { IPC, debug } from './constants'
+import { IPC, CHAINLIST_RPCS_URL, debug } from './constants'
 import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir } from './data-store'
 import { client } from './etherscan-client'
 import { scanAddress } from './chain-scanner'
 import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
+
+async function fetchRpcsJson() {
+  const resp = await fetch(CHAINLIST_RPCS_URL)
+  if (!resp.ok) throw new Error(`Failed to fetch rpcs.json: ${resp.status}`)
+  return resp.json()
+}
+
+function findFirstHttpsRpc(rpcsData, chainId) {
+  const numericId = Number(chainId)
+  const entry = rpcsData.find(r => r.chainId === numericId)
+  if (!entry || !entry.rpc) return null
+  for (const rpc of entry.rpc) {
+    const url = typeof rpc === 'string' ? rpc : rpc.url
+    if (url && url.startsWith('https://') && !url.includes('${')) return url
+  }
+  return null
+}
+
+async function populateRpcUrls(chains) {
+  try {
+    const rpcsData = await fetchRpcsJson()
+    for (const chain of chains) {
+      if (!chain.rpcurl) {
+        const url = findFirstHttpsRpc(rpcsData, chain.chainid)
+        if (url) chain.rpcurl = url
+      }
+    }
+  } catch (err) {
+    debug('Failed to populate RPC URLs:', err.message)
+  }
+  return chains
+}
 
 export function registerIpcHandlers() {
   ipcMain.handle(IPC.ADDRESSES_LIST, () => {
@@ -72,10 +104,39 @@ export function registerIpcHandlers() {
 
   ipcMain.handle(IPC.CHAINS_REFRESH, async () => {
     const result = await client.fetchChainlist()
+    const existing = loadChains()
+    const rpcMap = {}
+    for (const c of existing) {
+      if (c.rpcurl) rpcMap[c.chainid] = c.rpcurl
+    }
+    for (const c of result) {
+      if (rpcMap[c.chainid]) c.rpcurl = rpcMap[c.chainid]
+    }
+    await populateRpcUrls(result)
     saveChains(result)
     debug('Refreshed chains:', result.length)
     await fetchAndStoreIcons(result)
     return result
+  })
+
+  ipcMain.handle(IPC.CHAINS_UPDATE_RPC, (_event, { chainId, rpcurl }) => {
+    const chains = loadChains()
+    const chain = chains.find(c => c.chainid === chainId)
+    if (!chain) throw new Error('Chain not found')
+    chain.rpcurl = rpcurl
+    saveChains(chains)
+    debug('Updated RPC URL for chain:', chainId)
+    return chain
+  })
+
+  ipcMain.handle(IPC.CHAINS_FETCH_RPC, async (_event, chainId) => {
+    try {
+      const rpcsData = await fetchRpcsJson()
+      return findFirstHttpsRpc(rpcsData, chainId) || null
+    } catch (err) {
+      debug('Failed to fetch RPC for chain', chainId, err.message)
+      return null
+    }
   })
 
   ipcMain.handle(IPC.SETTINGS_GET, () => {

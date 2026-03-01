@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('api', {
   // Chains
   listChains: () => ipcRenderer.invoke('chains:list'),
   refreshChains: () => ipcRenderer.invoke('chains:refresh'),
+  updateChainRpc: (data) => ipcRenderer.invoke('chains:updateRpc', data),
+  fetchChainRpc: (chainId) => ipcRenderer.invoke('chains:fetchRpc', chainId),
   getChainIconPath: (chainId) => ipcRenderer.invoke('chains:iconPath', chainId),
 
   // Settings

@@ -43,5 +43,5 @@ export default function useChains() {
     }
   }, [])
 
-  return { chains, loading, refreshing, error, refresh, reload: load }
+  return { chains, setChains, loading, refreshing, error, refresh, reload: load }
 }

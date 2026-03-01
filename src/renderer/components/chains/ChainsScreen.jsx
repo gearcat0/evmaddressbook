@@ -1,9 +1,14 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import useChains from '../../hooks/useChains'
 import ChainTable from './ChainTable'
 
 export default function ChainsScreen() {
-  const { chains, loading, refreshing, error, refresh } = useChains()
+  const { chains, setChains, loading, refreshing, error, refresh } = useChains()
+
+  const handleUpdateRpc = useCallback(async (chainId, rpcurl) => {
+    await window.api.updateChainRpc({ chainId, rpcurl })
+    setChains(prev => prev.map(c => c.chainid === chainId ? { ...c, rpcurl } : c))
+  }, [setChains])
 
   if (loading) return <div className="empty-state"><p>Loading chains...</p></div>
 
@@ -32,7 +37,7 @@ export default function ChainsScreen() {
           <p>Click "Refresh from Etherscan" to fetch the chain list.</p>
         </div>
       ) : (
-        <ChainTable chains={chains} />
+        <ChainTable chains={chains} onUpdateRpc={handleUpdateRpc} />
       )}
     </div>
   )
