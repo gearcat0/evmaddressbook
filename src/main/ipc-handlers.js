@@ -52,7 +52,7 @@ export function registerIpcHandlers() {
     const entry = {
       address: checksummed,
       description: description || '',
-      activeChains: [],
+      activeChains: {},
       lastScanned: null
     }
     addresses.push(entry)

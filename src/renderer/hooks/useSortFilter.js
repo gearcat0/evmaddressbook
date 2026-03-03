@@ -18,9 +18,18 @@ export default function useSortFilter(items, defaultSortKey = null) {
     if (!filter) return items
     const lower = filter.toLowerCase()
     return items.filter(item =>
-      Object.values(item).some(val =>
-        String(val).toLowerCase().includes(lower)
-      )
+      Object.entries(item).some(([key, val]) => {
+        if (key === 'activeChains' && val && typeof val === 'object' && !Array.isArray(val)) {
+          return Object.entries(val).some(([chainId, info]) => {
+            if (chainId.includes(lower)) return true
+            if (info && typeof info === 'object') {
+              return Object.values(info).some(v => String(v).toLowerCase().includes(lower))
+            }
+            return false
+          })
+        }
+        return String(val).toLowerCase().includes(lower)
+      })
     )
   }, [items, filter])
 

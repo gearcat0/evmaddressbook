@@ -62,7 +62,23 @@ function saveJson(name, data) {
 }
 
 export function loadAddresses() {
-  return loadJson('addresses.json', [])
+  const addresses = loadJson('addresses.json', [])
+  let migrated = false
+  for (const entry of addresses) {
+    if (Array.isArray(entry.activeChains)) {
+      const map = {}
+      for (const chainId of entry.activeChains) {
+        map[String(chainId)] = { addressType: null }
+      }
+      entry.activeChains = map
+      migrated = true
+    }
+  }
+  if (migrated) {
+    saveJson('addresses.json', addresses)
+    debug('Migrated activeChains from array to map format')
+  }
+  return addresses
 }
 
 export function saveAddresses(addresses) {

@@ -37,7 +37,10 @@ export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, 
           <div className="scan-progress">
             <div className="spinner" />
             <span>
-              Scanning {scanState.chainName || '...'} ({scanState.current}/{scanState.total})
+              {scanState.phase === 'discovery'
+                ? `Discovering ${scanState.chainName || '...'} (${scanState.current}/${scanState.total})`
+                : `Scanning ${scanState.chainName || '...'} (${scanState.current}/${scanState.total})`
+              }
             </span>
           </div>
         ) : (

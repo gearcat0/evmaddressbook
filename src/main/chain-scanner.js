@@ -1,20 +1,23 @@
 import { client } from './etherscan-client'
 import { loadChains, loadAddresses, saveAddresses } from './data-store'
+import { resolveAddressType } from './address-type-resolver'
 import { debug } from './constants'
 
 export async function scanAddress(address, sender) {
   const chains = loadChains()
-  const activeChains = []
+  const activeChains = {}
   const total = chains.length
 
   debug(`Starting scan of ${address} across ${total} chains`)
 
+  // Phase 1: Scanning for chain activity
   for (let i = 0; i < chains.length; i++) {
     const chain = chains[i]
     const chainId = parseInt(chain.chainid, 10)
 
     sender('scan:progress', {
       address,
+      phase: 'scanning',
       current: i + 1,
       total,
       chainName: chain.chainname,
@@ -24,11 +27,38 @@ export async function scanAddress(address, sender) {
     try {
       const active = await client.checkActivity(chainId, address)
       if (active) {
-        activeChains.push(chainId)
+        activeChains[String(chainId)] = { addressType: null }
         debug(`Activity found on chain ${chainId} (${chain.chainname})`)
       }
     } catch (err) {
       debug(`Error scanning chain ${chainId}:`, err.message)
+    }
+  }
+
+  // Phase 2: Discovering address type details on active chains
+  const activeChainIds = Object.keys(activeChains)
+  const discoveryTotal = activeChainIds.length
+
+  for (let i = 0; i < activeChainIds.length; i++) {
+    const chainId = activeChainIds[i]
+    const chain = chains.find(c => String(c.chainid) === chainId)
+    const chainName = chain ? chain.chainname : `Chain ${chainId}`
+
+    sender('scan:progress', {
+      address,
+      phase: 'discovery',
+      current: i + 1,
+      total: discoveryTotal,
+      chainName,
+      chainId: parseInt(chainId, 10)
+    })
+
+    try {
+      const typeInfo = await resolveAddressType(chainId, address)
+      activeChains[chainId] = typeInfo
+      debug(`Discovered type on chain ${chainId}: ${typeInfo.addressType}`)
+    } catch (err) {
+      debug(`Error discovering type on chain ${chainId}:`, err.message)
     }
   }
 
@@ -41,7 +71,7 @@ export async function scanAddress(address, sender) {
   }
 
   sender('scan:complete', { address, activeChains })
-  debug(`Scan complete for ${address}: active on ${activeChains.length} chains`)
+  debug(`Scan complete for ${address}: active on ${discoveryTotal} chains`)
 
   return activeChains
 }
