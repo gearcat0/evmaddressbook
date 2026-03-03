@@ -8,8 +8,8 @@ let mainWindow
 function createWindow() {
   const scaleFactor = screen.getPrimaryDisplay().scaleFactor
   const hiDpi = scaleFactor > 1
-  const width = hiDpi ? 1200 : 1000
-  const height = hiDpi ? 850 : 700
+  const width = hiDpi ? 2400 : 2000
+  const height = hiDpi ? 1700 : 1400
   const zoomFactor = hiDpi ? 1.25 : 1
 
   mainWindow = new BrowserWindow({
@@ -24,7 +24,8 @@ function createWindow() {
       zoomFactor
     },
     title: 'EVM Address Book',
-    backgroundColor: '#1a1a2e'
+    backgroundColor: '#1a1a2e',
+    icon: path.join(__dirname, '../../resources/icon.svg')
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

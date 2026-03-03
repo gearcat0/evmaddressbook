@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Book cover gradient -->
+    <linearGradient id="coverGrad" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#2D2D3A"/>
+      <stop offset="100%" stop-color="#1A1A24"/>
+    </linearGradient>
+    <!-- Spine gradient -->
+    <linearGradient id="spineGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#15151D"/>
+      <stop offset="100%" stop-color="#22222E"/>
+    </linearGradient>
+    <!-- Ethereum diamond top gradient -->
+    <linearGradient id="ethTop" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#C8C8FF"/>
+      <stop offset="100%" stop-color="#8C8CDB"/>
+    </linearGradient>
+    <!-- Ethereum diamond bottom gradient -->
+    <linearGradient id="ethBot" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#6B6BB5"/>
+      <stop offset="100%" stop-color="#454580"/>
+    </linearGradient>
+    <!-- Ethereum right facet -->
+    <linearGradient id="ethRight" x1="0" y1="0" x2="1" y2="0.5">
+      <stop offset="0%" stop-color="#7B7BC8"/>
+      <stop offset="100%" stop-color="#5A5AA0"/>
+    </linearGradient>
+    <!-- Page edge gradient -->
+    <linearGradient id="pageEdge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#D8D8D8"/>
+      <stop offset="60%" stop-color="#F5F5F0"/>
+      <stop offset="100%" stop-color="#E0E0DA"/>
+    </linearGradient>
+    <!-- Elastic band gradient -->
+    <linearGradient id="bandGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#3A3A50"/>
+      <stop offset="50%" stop-color="#28283A"/>
+      <stop offset="100%" stop-color="#3A3A50"/>
+    </linearGradient>
+    <!-- Subtle texture for book cover -->
+    <filter id="leatherTexture">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise"/>
+      <feDiffuseLighting in="noise" lighting-color="#2D2D3A" surfaceScale="1.2" result="diffLight">
+        <feDistantLight azimuth="225" elevation="50"/>
+      </feDiffuseLighting>
+      <feComposite in="SourceGraphic" in2="diffLight" operator="arithmetic" k1="0.8" k2="0.3" k3="0" k4="0"/>
+    </filter>
+    <!-- Shadow for depth -->
+    <filter id="dropShadow">
+      <feDropShadow dx="8" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <!-- Inner glow for Ethereum logo -->
+    <filter id="ethGlow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feFlood flood-color="#8888DD" flood-opacity="0.35" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Rounded rect clip for book shape -->
+    <clipPath id="bookClip">
+      <rect x="168" y="72" width="668" height="870" rx="14" ry="14"/>
+    </clipPath>
+  </defs>
+
+  <!-- === MAIN BOOK BODY === -->
+  <g filter="url(#dropShadow)">
+
+    <!-- Page block (visible on right edge) -->
+    <rect x="248" y="102" width="588" height="820" rx="6" ry="6" fill="url(#pageEdge)"/>
+    <!-- Page lines on edge -->
+    <line x1="836" y1="130" x2="836" y2="894" stroke="#C8C8C2" stroke-width="0.5"/>
+    <line x1="833" y1="130" x2="833" y2="894" stroke="#D0D0CA" stroke-width="0.5"/>
+
+    <!-- Back cover (slightly offset) -->
+    <rect x="178" y="82" width="668" height="870" rx="14" ry="14" fill="#1E1E28"/>
+
+    <!-- Front cover -->
+    <rect x="168" y="72" width="668" height="870" rx="14" ry="14" fill="url(#coverGrad)"/>
+
+    <!-- Leather texture overlay on cover -->
+    <rect x="168" y="72" width="668" height="870" rx="14" ry="14" fill="url(#coverGrad)" filter="url(#leatherTexture)" opacity="0.6"/>
+
+    <!-- Spine area (clipped to book outline) -->
+    <g clip-path="url(#bookClip)">
+      <rect x="168" y="72" width="80" height="870" fill="url(#spineGrad)"/>
+      <rect x="220" y="72" width="28" height="870" fill="url(#spineGrad)" opacity="0.5"/>
+    </g>
+
+    <!-- Spine decorative lines -->
+    <line x1="198" y1="72" x2="198" y2="942" stroke="#3A3A4E" stroke-width="1.5"/>
+    <line x1="240" y1="72" x2="240" y2="942" stroke="#3A3A4E" stroke-width="1"/>
+
+    <!-- === TAB INDICES (A-Z register cuts) === -->
+    <!-- Tab notches on right side -->
+    <g opacity="0.85">
+      <rect x="826" y="132" width="18" height="52" rx="4" ry="4" fill="#E8E8E2" stroke="#C0C0B8" stroke-width="0.5"/>
+      <text x="835" y="163" font-family="'Georgia', serif" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">A</text>
+
+      <rect x="826" y="200" width="18" height="52" rx="4" ry="4" fill="#E8E8E2" stroke="#C0C0B8" stroke-width="0.5"/>
+      <text x="835" y="231" font-family="'Georgia', serif" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">D</text>
+
+      <rect x="826" y="268" width="18" height="52" rx="4" ry="4" fill="#E8E8E2" stroke="#C0C0B8" stroke-width="0.5"/>
+      <text x="835" y="299" font-family="'Georgia', serif" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">G</text>
+
+      <rect x="826" y="336" width="18" height="52" rx="4" ry="4" fill="#E8E8E2" stroke="#C0C0B8" stroke-width="0.5"/>
+      <text x="835" y="367" font-family="'Georgia', serif" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">K</text>
+
+      <rect x="826" y="404" width="18" height="52" rx="4" ry="4" fill="#E8E8E2" stroke="#C0C0B8" stroke-width="0.5"/>
+      <text x="835" y="435" font-family="'Georgia', serif" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">N</text>
+
+      <rect x="826" y="472" width="18" height="52" rx="4" ry="4" fill="#E8E8E2" stroke="#C0C0B8" stroke-width="0.5"/>
+      <text x="835" y="503" font-family="'Georgia', serif" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">Q</text>
+
+      <rect x="826" y="540" width="18" height="52" rx="4" ry="4" fill="#E8E8E2" stroke="#C0C0B8" stroke-width="0.5"/>
+      <text x="835" y="571" font-family="'Georgia', serif" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">T</text>
+
+      <rect x="826" y="608" width="18" height="52" rx="4" ry="4" fill="#E8E8E2" stroke="#C0C0B8" stroke-width="0.5"/>
+      <text x="835" y="639" font-family="'Georgia', serif" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">W</text>
+
+      <rect x="826" y="676" width="18" height="52" rx="4" ry="4" fill="#E8E8E2" stroke="#C0C0B8" stroke-width="0.5"/>
+      <text x="835" y="707" font-family="'Georgia', serif" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">Z</text>
+    </g>
+
+    <!-- === COVER CONTENT === -->
+
+
+
+    <!-- === ETHEREUM DIAMOND LOGO === -->
+    <g transform="translate(520, 440)" filter="url(#ethGlow)">
+      <!-- Upper left facet -->
+      <polygon points="0,-220 -125,0 0,-34" fill="url(#ethTop)" opacity="0.95"/>
+      <!-- Upper right facet -->
+      <polygon points="0,-220 125,0 0,-34" fill="url(#ethRight)" opacity="0.9"/>
+      <!-- Middle left facet -->
+      <polygon points="-125,0 0,-34 0,16" fill="#9090D0" opacity="0.8"/>
+      <!-- Middle right facet -->
+      <polygon points="125,0 0,-34 0,16" fill="#7070B0" opacity="0.8"/>
+      <!-- Lower left facet -->
+      <polygon points="0,16 -125,0 0,185" fill="url(#ethBot)" opacity="0.95"/>
+      <!-- Lower right facet -->
+      <polygon points="0,16 125,0 0,185" fill="#5858A0" opacity="0.9"/>
+    </g>
+
+
+
+    <!-- === ELASTIC BAND === -->
+    <rect x="770" y="72" width="12" height="870" rx="3" ry="3" fill="url(#bandGrad)" opacity="0.7"/>
+
+    <!-- Corner rounding detail (bottom-right) -->
+    <rect x="168" y="72" width="668" height="870" rx="14" ry="14" fill="none" stroke="#3A3A50" stroke-width="1.5" opacity="0.3"/>
+  </g>
+</svg>
