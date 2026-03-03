@@ -4,7 +4,7 @@ import ChainIcon from '../ChainIcon'
 function getTypeLabel(info) {
   if (!info || !info.addressType) return null
   if (info.addressType === 'eoa') return 'EOA'
-  if (info.contractName === 'GnosisSafeProxy') {
+  if (info.contractName === 'GnosisSafeProxy' || info.contractName === 'SafeProxy') {
     const t = info.threshold || '?'
     const o = info.owners ? info.owners.length : '?'
     return `Safe ${t}/${o}`

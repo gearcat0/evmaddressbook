@@ -164,8 +164,8 @@ export async function resolveAddressType(chainId, address) {
     }
   }
 
-  // Step 5: If GnosisSafeProxy, get Safe details
-  if (result.contractName === 'GnosisSafeProxy') {
+  // Step 5: If GnosisSafeProxy or SafeProxy, get Safe details
+  if (result.contractName === 'GnosisSafeProxy' || result.contractName === 'SafeProxy') {
     const coder = AbiCoder.defaultAbiCoder()
 
     // VERSION()
