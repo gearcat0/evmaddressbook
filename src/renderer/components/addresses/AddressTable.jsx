@@ -22,7 +22,7 @@ export default function AddressTable({ addresses, chains, onUpdate, onDelete, on
         <table>
           <thead>
             <tr>
-              <th onClick={() => toggleSort('address')}>
+              <th onClick={() => toggleSort('address')} style={{ width: 1, whiteSpace: 'nowrap' }}>
                 Address<span className="sort-indicator">{sortIndicator('address')}</span>
               </th>
               <th onClick={() => toggleSort('description')}>
