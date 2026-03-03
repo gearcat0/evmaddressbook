@@ -17,19 +17,38 @@ export default function ChainsScreen() {
     ))
   }, [setChains])
 
+  const handleSetTestnetsEnabled = useCallback(async (enabled) => {
+    const updated = await window.api.setTestnetsEnabled(enabled)
+    setChains(updated)
+  }, [setChains])
+
   if (loading) return <div className="empty-state"><p>Loading chains...</p></div>
 
   return (
     <div>
       <div className="screen-header">
         <h2>Chains ({chains.length})</h2>
-        <button
-          className="btn btn-secondary"
-          onClick={refresh}
-          disabled={refreshing}
-        >
-          {refreshing ? 'Refreshing...' : 'Refresh from Etherscan'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => handleSetTestnetsEnabled(true)}
+          >
+            Enable Testnets
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => handleSetTestnetsEnabled(false)}
+          >
+            Disable Testnets
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={refresh}
+            disabled={refreshing}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh from Etherscan'}
+          </button>
+        </div>
       </div>
 
       {error && (

@@ -132,6 +132,18 @@ export function registerIpcHandlers() {
     return chain
   })
 
+  ipcMain.handle(IPC.CHAINS_SET_TESTNETS_ENABLED, (_event, enabled) => {
+    const chains = loadChains()
+    for (const chain of chains) {
+      if (chain.chainname && chain.chainname.toLowerCase().includes('testnet')) {
+        chain.enabled = enabled
+      }
+    }
+    saveChains(chains)
+    debug('Set testnets enabled:', enabled)
+    return chains
+  })
+
   ipcMain.handle(IPC.CHAINS_UPDATE_RPC, (_event, { chainId, rpcurl }) => {
     const chains = loadChains()
     const chain = chains.find(c => c.chainid === chainId)
