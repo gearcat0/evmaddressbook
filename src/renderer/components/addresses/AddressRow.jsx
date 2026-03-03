@@ -51,11 +51,12 @@ export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, 
         <div className="row-actions">
           <button
             className="btn btn-secondary btn-small"
+            style={{ minWidth: 44 }}
             onClick={() => onScan(entry.address)}
             disabled={isScanning}
             title="Scan for chain activity"
           >
-            {isScanning ? '...' : 'Scan'}
+            {isScanning ? '\u2026' : 'Scan'}
           </button>
           <button
             className="btn btn-secondary btn-small"
