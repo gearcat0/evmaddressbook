@@ -10,6 +10,13 @@ export default function ChainsScreen() {
     setChains(prev => prev.map(c => c.chainid === chainId ? { ...c, rpcurl } : c))
   }, [setChains])
 
+  const handleToggleEnabled = useCallback(async (chainId) => {
+    await window.api.toggleChainEnabled(chainId)
+    setChains(prev => prev.map(c =>
+      c.chainid === chainId ? { ...c, enabled: c.enabled === false ? true : false } : c
+    ))
+  }, [setChains])
+
   if (loading) return <div className="empty-state"><p>Loading chains...</p></div>
 
   return (
@@ -37,7 +44,7 @@ export default function ChainsScreen() {
           <p>Click "Refresh from Etherscan" to fetch the chain list.</p>
         </div>
       ) : (
-        <ChainTable chains={chains} onUpdateRpc={handleUpdateRpc} />
+        <ChainTable chains={chains} onUpdateRpc={handleUpdateRpc} onToggleEnabled={handleToggleEnabled} />
       )}
     </div>
   )

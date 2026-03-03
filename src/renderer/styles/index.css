@@ -430,6 +430,14 @@ a.chain-badge:hover {
   background: var(--text-muted);
 }
 
+/* Chain toggle checkbox */
+.chain-toggle {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
 /* Action buttons in table rows */
 .row-actions {
   display: flex;

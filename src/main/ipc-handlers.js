@@ -106,17 +106,30 @@ export function registerIpcHandlers() {
     const result = await client.fetchChainlist()
     const existing = loadChains()
     const rpcMap = {}
+    const enabledMap = {}
     for (const c of existing) {
       if (c.rpcurl) rpcMap[c.chainid] = c.rpcurl
+      if (c.enabled !== undefined) enabledMap[c.chainid] = c.enabled
     }
     for (const c of result) {
       if (rpcMap[c.chainid]) c.rpcurl = rpcMap[c.chainid]
+      c.enabled = enabledMap[c.chainid] !== undefined ? enabledMap[c.chainid] : true
     }
     await populateRpcUrls(result)
     saveChains(result)
     debug('Refreshed chains:', result.length)
     await fetchAndStoreIcons(result)
     return result
+  })
+
+  ipcMain.handle(IPC.CHAINS_TOGGLE_ENABLED, (_event, chainId) => {
+    const chains = loadChains()
+    const chain = chains.find(c => c.chainid === chainId)
+    if (!chain) throw new Error('Chain not found')
+    chain.enabled = chain.enabled === false ? true : false
+    saveChains(chains)
+    debug('Toggled enabled for chain:', chainId, chain.enabled)
+    return chain
   })
 
   ipcMain.handle(IPC.CHAINS_UPDATE_RPC, (_event, { chainId, rpcurl }) => {

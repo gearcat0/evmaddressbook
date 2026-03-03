@@ -16,7 +16,8 @@ export const IPC = {
   DIALOG_OPEN_DIRECTORY: 'dialog:openDirectory',
   CHAINS_UPDATE_RPC: 'chains:updateRpc',
   CHAINS_FETCH_RPC: 'chains:fetchRpc',
-  CHAINS_ICON_PATH: 'chains:iconPath'
+  CHAINS_ICON_PATH: 'chains:iconPath',
+  CHAINS_TOGGLE_ENABLED: 'chains:toggleEnabled'
 }
 
 export const ETHERSCAN_V2_URL = 'https://api.etherscan.io/v2/api'

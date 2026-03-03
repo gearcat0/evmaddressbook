@@ -70,7 +70,7 @@ function RpcCell({ chain, onUpdateRpc }) {
   )
 }
 
-export default function ChainTable({ chains, onUpdateRpc }) {
+export default function ChainTable({ chains, onUpdateRpc, onToggleEnabled }) {
   const { sorted, filter, setFilter, toggleSort, sortIndicator } = useSortFilter(chains, 'chainid')
 
   return (
@@ -90,6 +90,7 @@ export default function ChainTable({ chains, onUpdateRpc }) {
         <table>
           <thead>
             <tr>
+              <th style={{ width: 70, textAlign: 'center' }}>Enabled</th>
               <th onClick={() => toggleSort('chainid')}>
                 Chain ID<span className="sort-indicator">{sortIndicator('chainid')}</span>
               </th>
@@ -107,6 +108,14 @@ export default function ChainTable({ chains, onUpdateRpc }) {
           <tbody>
             {sorted.map(chain => (
               <tr key={chain.chainid}>
+                <td style={{ textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    className="chain-toggle"
+                    checked={chain.enabled !== false}
+                    onChange={() => onToggleEnabled(chain.chainid)}
+                  />
+                </td>
                 <td>{chain.chainid}</td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

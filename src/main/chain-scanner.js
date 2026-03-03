@@ -4,7 +4,7 @@ import { resolveAddressType } from './address-type-resolver'
 import { debug } from './constants'
 
 export async function scanAddress(address, sender) {
-  const chains = loadChains()
+  const chains = loadChains().filter(c => c.enabled !== false)
   const activeChains = {}
   const total = chains.length
 

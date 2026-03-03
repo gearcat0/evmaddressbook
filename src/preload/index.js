@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   updateChainRpc: (data) => ipcRenderer.invoke('chains:updateRpc', data),
   fetchChainRpc: (chainId) => ipcRenderer.invoke('chains:fetchRpc', chainId),
   getChainIconPath: (chainId) => ipcRenderer.invoke('chains:iconPath', chainId),
+  toggleChainEnabled: (chainId) => ipcRenderer.invoke('chains:toggleEnabled', chainId),
 
   // Settings
   getSettings: () => ipcRenderer.invoke('settings:get'),

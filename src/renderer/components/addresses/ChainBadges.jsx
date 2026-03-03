@@ -37,10 +37,13 @@ export default function ChainBadges({ activeChains, chains, address }) {
 
   const chainMap = {}
   for (const c of chains) {
-    chainMap[c.chainid] = { name: c.chainname, explorer: c.blockexplorer }
+    chainMap[c.chainid] = { name: c.chainname, explorer: c.blockexplorer, enabled: c.enabled }
   }
 
-  const entries = Object.entries(activeChains)
+  const entries = Object.entries(activeChains).filter(([chainId]) => {
+    const chain = chainMap[chainId]
+    return !chain || chain.enabled !== false
+  })
 
   return (
     <div className="chain-badges">
