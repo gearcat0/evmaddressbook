@@ -30,9 +30,10 @@ function buildTooltip(chainName, info) {
   return lines.join('\n')
 }
 
-export default function ChainBadges({ activeChains, chains, address }) {
+export default function ChainBadges({ activeChains, chains, address, lastScanned }) {
   if (!activeChains || (typeof activeChains === 'object' && Object.keys(activeChains).length === 0)) {
-    return <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>No chains scanned</span>
+    const message = lastScanned ? 'No activity found' : 'No chains scanned'
+    return <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{message}</span>
   }
 
   const chainMap = {}
