@@ -102,11 +102,6 @@ class EtherscanClient {
     } catch (err) {
       debug(`Internal txns error on chain ${chainId}:`, err.message)
     }
-    try {
-      if (await this.checkTokenTransfers(chainId, address)) return true
-    } catch (err) {
-      debug(`Token transfers error on chain ${chainId}:`, err.message)
-    }
     return false
   }
 }
