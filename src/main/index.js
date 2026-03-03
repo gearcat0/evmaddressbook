@@ -25,7 +25,7 @@ function createWindow() {
     },
     title: 'EVM Address Book',
     backgroundColor: '#1a1a2e',
-    icon: path.join(__dirname, '../../resources/icon.svg')
+    icon: path.join(__dirname, '../../resources/icon.png')
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
