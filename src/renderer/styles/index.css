@@ -358,12 +358,31 @@ a.chain-badge:hover {
 }
 
 /* Scan progress */
+.scan-progress-wrapper {
+  position: relative;
+  min-height: 20px;
+}
+
 .scan-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
   color: var(--text-secondary);
+  overflow: hidden;
+}
+
+.scan-progress .spinner {
+  flex-shrink: 0;
+}
+
+.scan-progress span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .spinner {

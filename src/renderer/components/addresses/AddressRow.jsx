@@ -34,14 +34,16 @@ export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, 
       <td>{entry.description || <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
       <td>
         {isScanning ? (
-          <div className="scan-progress">
-            <div className="spinner" />
-            <span>
-              {scanState.phase === 'discovery'
-                ? `Discovering ${scanState.chainName || '...'} (${scanState.current}/${scanState.total})`
-                : `Scanning ${scanState.chainName || '...'} (${scanState.current}/${scanState.total})`
-              }
-            </span>
+          <div className="scan-progress-wrapper">
+            <div className="scan-progress">
+              <div className="spinner" />
+              <span>
+                {scanState.phase === 'discovery'
+                  ? `Discovering ${scanState.chainName || '...'} (${scanState.current}/${scanState.total})`
+                  : `Scanning ${scanState.chainName || '...'} (${scanState.current}/${scanState.total})`
+                }
+              </span>
+            </div>
           </div>
         ) : (
           <ChainBadges activeChains={entry.activeChains} chains={chains} address={entry.address} />
