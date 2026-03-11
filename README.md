@@ -37,9 +37,21 @@ npm run dev
 ### Build
 
 ```bash
-npm run build
-npm run preview
+npm run build     # compile only
+npm run preview   # preview the compiled app
 ```
+
+### Release Packaging
+
+Build distributable packages with [electron-builder](https://www.electron.build/):
+
+```bash
+npm run dist:linux   # AppImage + deb
+npm run dist:mac     # dmg + zip
+npm run dist:win     # NSIS installer + portable exe
+```
+
+Output goes to `release/`. Each platform should be built on its native OS.
 
 ### Configuration
 
@@ -102,7 +114,11 @@ src/
 │   └── index.js                 # Context bridge for renderer
 └── renderer/
     ├── App.jsx                  # Tab-based layout
+    ├── main.jsx                 # React entry point
+    ├── logo.svg                 # App logo
     ├── components/
+    │   ├── TabBar.jsx           # Navigation tabs
+    │   ├── ChainIcon.jsx        # Chain icon with fallback
     │   ├── addresses/           # Address list, rows, badges, forms
     │   ├── chains/              # Chain table with editable RPC URLs
     │   └── settings/            # API key and data dir config
