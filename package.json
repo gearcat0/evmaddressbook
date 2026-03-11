@@ -6,14 +6,37 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "preview": "electron-vite preview"
+    "preview": "electron-vite preview",
+    "dist": "electron-vite build && electron-builder",
+    "dist:linux": "electron-vite build && electron-builder --linux",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:win": "electron-vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.evmaddressbook.app",
+    "productName": "EVM Address Book",
+    "directories": {
+      "output": "release"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility"
+    },
+    "mac": {
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    }
   },
   "keywords": [],
-  "author": "",
+  "author": {
+    "name": "EVM Address Book",
+    "email": "evmaddressbook@users.noreply.github.com"
+  },
   "license": "ISC",
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.4",
-    "electron": "^40.6.1",
     "electron-vite": "^5.0.0",
     "ethers": "^6.16.0",
     "react": "^19.2.4",
@@ -21,6 +44,8 @@
     "vite": "^7.3.1"
   },
   "devDependencies": {
+    "electron": "^40.6.1",
+    "electron-builder": "^26.8.1",
     "sharp": "^0.34.5"
   }
 }
