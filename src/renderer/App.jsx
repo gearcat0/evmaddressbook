@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import TabBar from './components/TabBar'
+import StatusBar from './components/StatusBar'
 import AddressesScreen from './components/addresses/AddressesScreen'
 import ChainsScreen from './components/chains/ChainsScreen'
 import SettingsScreen from './components/settings/SettingsScreen'
@@ -17,6 +18,7 @@ export default function App() {
         {activeTab === 'Chains' && <ChainsScreen />}
         {activeTab === 'Settings' && <SettingsScreen />}
       </div>
+      <StatusBar />
     </div>
   )
 }

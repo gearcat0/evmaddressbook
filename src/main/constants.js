@@ -18,7 +18,10 @@ export const IPC = {
   CHAINS_FETCH_RPC: 'chains:fetchRpc',
   CHAINS_ICON_PATH: 'chains:iconPath',
   CHAINS_TOGGLE_ENABLED: 'chains:toggleEnabled',
-  CHAINS_SET_TESTNETS_ENABLED: 'chains:setTestnetsEnabled'
+  CHAINS_SET_TESTNETS_ENABLED: 'chains:setTestnetsEnabled',
+  STATUS_GET: 'status:get',
+  ZOOM_GET: 'zoom:get',
+  ZOOM_SET: 'zoom:set'
 }
 
 export const ETHERSCAN_V2_URL = 'https://api.etherscan.io/v2/api'

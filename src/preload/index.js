@@ -21,6 +21,11 @@ contextBridge.exposeInMainWorld('api', {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   updateSettings: (data) => ipcRenderer.invoke('settings:update', data),
 
+  // Status
+  getStatus: () => ipcRenderer.invoke('status:get'),
+  getZoom: () => ipcRenderer.invoke('zoom:get'),
+  setZoom: (factor) => ipcRenderer.invoke('zoom:set', factor),
+
   // Dialog
   openDirectoryDialog: () => ipcRenderer.invoke('dialog:openDirectory'),
 

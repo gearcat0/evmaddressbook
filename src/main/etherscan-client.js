@@ -4,6 +4,7 @@ import { loadSettings } from './data-store'
 class EtherscanClient {
   constructor() {
     this.lastCallTime = 0
+    this.apiCallCount = 0
   }
 
   getApiKey() {
@@ -39,6 +40,7 @@ class EtherscanClient {
     }
     if (apikey) url.searchParams.set('apikey', apikey)
 
+    this.apiCallCount++
     debug('API call:', url.toString().replace(apikey, '***'))
     const res = await fetch(url.toString())
     if (!res.ok) throw new Error(`Etherscan API error: ${res.status}`)

@@ -182,6 +182,21 @@ export function registerIpcHandlers() {
     return getIconPath(chainId)
   })
 
+  ipcMain.handle(IPC.STATUS_GET, () => {
+    return { apiCallCount: client.apiCallCount }
+  })
+
+  ipcMain.handle(IPC.ZOOM_GET, () => {
+    const win = BrowserWindow.getFocusedWindow()
+    return win ? win.webContents.getZoomFactor() : 1
+  })
+
+  ipcMain.handle(IPC.ZOOM_SET, (_event, factor) => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) win.webContents.setZoomFactor(factor)
+    return factor
+  })
+
   ipcMain.handle(IPC.DIALOG_OPEN_DIRECTORY, async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory']
