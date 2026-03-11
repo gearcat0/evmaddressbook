@@ -7,6 +7,32 @@ import { debug } from './constants'
 
 const EIP1967_IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc'
 
+async function withRetry(fn, label) {
+  const delays = [1000, 2000, 4000]
+  let lastErr
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      if (attempt < delays.length) {
+        debug(`${label} failed (attempt ${attempt + 1}/${delays.length + 1}), retrying in ${delays[attempt]}ms: ${err.message}`)
+        await new Promise(r => setTimeout(r, delays[attempt]))
+      }
+    }
+  }
+  throw lastErr
+}
+
+function validateProxyResult(data, method) {
+  if (data.error) throw new Error(data.error.message || `${method} RPC error`)
+  if (!data.result) return '0x'
+  if (typeof data.result === 'string' && !data.result.startsWith('0x')) {
+    throw new Error(`${method}: ${data.result.slice(0, 80)}`)
+  }
+  return data.result
+}
+
 function ensureContractDir(address, chainId) {
   const dir = path.join(getDataDir(), 'contracts', address, String(chainId))
   if (!fs.existsSync(dir)) {
@@ -31,7 +57,7 @@ async function getCode(chainId, address) {
     address,
     tag: 'latest'
   })
-  return data.result || '0x'
+  return validateProxyResult(data, 'eth_getCode')
 }
 
 async function getSourceCode(chainId, address) {
@@ -69,7 +95,7 @@ async function getStorageAt(chainId, address, slot) {
     position: slot,
     tag: 'latest'
   })
-  return data.result || '0x0'
+  return validateProxyResult(data, 'eth_getStorageAt') || '0x0'
 }
 
 async function ethCall(chainId, to, callData) {
@@ -81,7 +107,7 @@ async function ethCall(chainId, to, callData) {
     data: callData,
     tag: 'latest'
   })
-  return data.result || '0x'
+  return validateProxyResult(data, 'eth_call')
 }
 
 function decodeAddress(hex) {
@@ -93,19 +119,21 @@ function decodeAddress(hex) {
 
 export async function resolveAddressType(chainId, address) {
   const result = { addressType: null }
+  const errors = []
 
   // Step 1: Check if EOA by getting code
   let code
   try {
-    code = await getCode(chainId, address)
+    code = await withRetry(() => getCode(chainId, address), `eth_getCode(${chainId})`)
   } catch (err) {
+    errors.push(`eth_getCode failed on chain ${chainId}: ${err.message}`)
     debug(`eth_getCode failed for ${address} on chain ${chainId}:`, err.message)
-    return result
+    return { typeInfo: result, errors }
   }
 
   if (!code || code === '0x' || code === '0x0') {
     result.addressType = 'eoa'
-    return result
+    return { typeInfo: result, errors }
   }
 
   result.addressType = 'contract'
@@ -113,7 +141,7 @@ export async function resolveAddressType(chainId, address) {
   // Step 2: Get source code info
   let sourceInfo
   try {
-    sourceInfo = await getSourceCode(chainId, address)
+    sourceInfo = await withRetry(() => getSourceCode(chainId, address), `getsourcecode(${chainId})`)
     if (sourceInfo) {
       if (sourceInfo.ContractName) {
         result.contractName = sourceInfo.ContractName
@@ -133,17 +161,19 @@ export async function resolveAddressType(chainId, address) {
       }
     }
   } catch (err) {
+    errors.push(`getsourcecode failed on chain ${chainId}: ${err.message}`)
     debug(`getsourcecode failed for ${address} on chain ${chainId}:`, err.message)
   }
 
   // Step 3: Get contract creation info
   try {
-    const creation = await getContractCreation(chainId, address)
+    const creation = await withRetry(() => getContractCreation(chainId, address), `getcontractcreation(${chainId})`)
     if (creation) {
       if (creation.contractCreator) result.contractCreator = creation.contractCreator
       if (creation.txHash) result.creationTxHash = creation.txHash
     }
   } catch (err) {
+    errors.push(`getcontractcreation failed on chain ${chainId}: ${err.message}`)
     debug(`getcontractcreation failed for ${address} on chain ${chainId}:`, err.message)
   }
 
@@ -155,11 +185,12 @@ export async function resolveAddressType(chainId, address) {
         result.implementationAddress = sourceInfo.Implementation
       } else {
         // Fall back to EIP-1967 storage slot
-        const slotValue = await getStorageAt(chainId, address, EIP1967_IMPL_SLOT)
+        const slotValue = await withRetry(() => getStorageAt(chainId, address, EIP1967_IMPL_SLOT), `eth_getStorageAt(${chainId})`)
         const impl = decodeAddress(slotValue)
         if (impl) result.implementationAddress = impl
       }
     } catch (err) {
+      errors.push(`Implementation lookup failed on chain ${chainId}: ${err.message}`)
       debug(`Implementation lookup failed for ${address} on chain ${chainId}:`, err.message)
     }
   }
@@ -170,37 +201,46 @@ export async function resolveAddressType(chainId, address) {
 
     // VERSION()
     try {
-      const versionResult = await ethCall(chainId, address, '0xffa1ad74')
-      if (versionResult && versionResult !== '0x') {
-        const [version] = coder.decode(['string'], versionResult)
-        result.version = version
-      }
+      await withRetry(async () => {
+        const versionResult = await ethCall(chainId, address, '0xffa1ad74')
+        if (versionResult && versionResult !== '0x') {
+          const [version] = coder.decode(['string'], versionResult)
+          result.version = version
+        }
+      }, `VERSION()(${chainId})`)
     } catch (err) {
+      errors.push(`VERSION() failed on chain ${chainId}: ${err.message}`)
       debug(`VERSION() call failed for ${address} on chain ${chainId}:`, err.message)
     }
 
     // getOwners()
     try {
-      const ownersResult = await ethCall(chainId, address, '0xa0e67e2b')
-      if (ownersResult && ownersResult !== '0x') {
-        const [owners] = coder.decode(['address[]'], ownersResult)
-        result.owners = owners.map(o => o.toString())
-      }
+      await withRetry(async () => {
+        const ownersResult = await ethCall(chainId, address, '0xa0e67e2b')
+        if (ownersResult && ownersResult !== '0x') {
+          const [owners] = coder.decode(['address[]'], ownersResult)
+          result.owners = owners.map(o => o.toString())
+        }
+      }, `getOwners()(${chainId})`)
     } catch (err) {
+      errors.push(`getOwners() failed on chain ${chainId}: ${err.message}`)
       debug(`getOwners() call failed for ${address} on chain ${chainId}:`, err.message)
     }
 
     // getThreshold()
     try {
-      const thresholdResult = await ethCall(chainId, address, '0xe75235b8')
-      if (thresholdResult && thresholdResult !== '0x') {
-        const [threshold] = coder.decode(['uint256'], thresholdResult)
-        result.threshold = Number(threshold)
-      }
+      await withRetry(async () => {
+        const thresholdResult = await ethCall(chainId, address, '0xe75235b8')
+        if (thresholdResult && thresholdResult !== '0x') {
+          const [threshold] = coder.decode(['uint256'], thresholdResult)
+          result.threshold = Number(threshold)
+        }
+      }, `getThreshold()(${chainId})`)
     } catch (err) {
+      errors.push(`getThreshold() failed on chain ${chainId}: ${err.message}`)
       debug(`getThreshold() call failed for ${address} on chain ${chainId}:`, err.message)
     }
   }
 
-  return result
+  return { typeInfo: result, errors }
 }

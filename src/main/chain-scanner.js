@@ -6,6 +6,7 @@ import { debug } from './constants'
 export async function scanAddress(address, sender) {
   const chains = loadChains().filter(c => c.enabled !== false)
   const activeChains = {}
+  const scanErrors = []
   const total = chains.length
 
   debug(`Starting scan of ${address} across ${total} chains`)
@@ -31,6 +32,7 @@ export async function scanAddress(address, sender) {
         debug(`Activity found on chain ${chainId} (${chain.chainname})`)
       }
     } catch (err) {
+      scanErrors.push(`${chain.chainname}: ${err.message}`)
       debug(`Error scanning chain ${chainId}:`, err.message)
     }
   }
@@ -54,10 +56,14 @@ export async function scanAddress(address, sender) {
     })
 
     try {
-      const typeInfo = await resolveAddressType(chainId, address)
+      const { typeInfo, errors } = await resolveAddressType(chainId, address)
       activeChains[chainId] = typeInfo
+      if (errors.length > 0) {
+        scanErrors.push(...errors)
+      }
       debug(`Discovered type on chain ${chainId}: ${typeInfo.addressType}`)
     } catch (err) {
+      scanErrors.push(`Discovery failed on chain ${chainId}: ${err.message}`)
       debug(`Error discovering type on chain ${chainId}:`, err.message)
     }
   }
@@ -67,11 +73,12 @@ export async function scanAddress(address, sender) {
   if (idx !== -1) {
     addresses[idx].activeChains = activeChains
     addresses[idx].lastScanned = new Date().toISOString()
+    addresses[idx].lastScanErrors = scanErrors
     saveAddresses(addresses)
   }
 
-  sender('scan:complete', { address, activeChains })
-  debug(`Scan complete for ${address}: active on ${discoveryTotal} chains`)
+  sender('scan:complete', { address, activeChains, errors: scanErrors })
+  debug(`Scan complete for ${address}: active on ${discoveryTotal} chains, ${scanErrors.length} error(s)`)
 
   return activeChains
 }

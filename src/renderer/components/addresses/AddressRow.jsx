@@ -2,6 +2,17 @@ import React, { useState } from 'react'
 import ChainBadges from './ChainBadges'
 import AddressForm from './AddressForm'
 
+function ScanIcon({ entry }) {
+  if (!entry.lastScanned) {
+    return <span className="scan-icon scan-icon-none" title="Never scanned">{'\u25CB'}</span>
+  }
+  if (entry.lastScanErrors && entry.lastScanErrors.length > 0) {
+    const tooltip = `Last scan had ${entry.lastScanErrors.length} error(s):\n${entry.lastScanErrors.join('\n')}`
+    return <span className="scan-icon scan-icon-error" title={tooltip}>{'\u26A0'}</span>
+  }
+  return <span className="scan-icon scan-icon-ok" title="Last scan completed successfully">{'\u2713'}</span>
+}
+
 export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, scanState }) {
   const [editing, setEditing] = useState(false)
 
@@ -56,9 +67,8 @@ export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, 
             style={{ minWidth: 44 }}
             onClick={() => onScan(entry.address)}
             disabled={isScanning}
-            title="Scan for chain activity"
           >
-            {isScanning ? '\u2026' : 'Scan'}
+            {isScanning ? '\u2026' : <><ScanIcon entry={entry} /> Scan</>}
           </button>
           <button
             className="btn btn-secondary btn-small"

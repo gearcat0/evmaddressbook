@@ -5,6 +5,7 @@ class EtherscanClient {
   constructor() {
     this.lastCallTime = 0
     this.apiCallCount = 0
+    this.apiErrorCount = 0
   }
 
   getApiKey() {
@@ -40,11 +41,23 @@ class EtherscanClient {
     }
     if (apikey) url.searchParams.set('apikey', apikey)
 
-    this.apiCallCount++
-    debug('API call:', url.toString().replace(apikey, '***'))
-    const res = await fetch(url.toString())
-    if (!res.ok) throw new Error(`Etherscan API error: ${res.status}`)
-    return res.json()
+    const retryDelays = [1000, 2000, 4000]
+    const logUrl = url.toString().replace(apikey, '***')
+
+    for (let attempt = 0; ; attempt++) {
+      this.apiCallCount++
+      debug('API call:', logUrl)
+      const res = await fetch(url.toString())
+      if (res.ok) return res.json()
+      if (res.status === 502 && attempt < retryDelays.length) {
+        debug(`502 Bad Gateway, retrying in ${retryDelays[attempt]}ms (attempt ${attempt + 1}/3)`)
+        this.apiErrorCount++
+        await new Promise(r => setTimeout(r, retryDelays[attempt]))
+        continue
+      }
+      this.apiErrorCount++
+      throw new Error(`Etherscan API error: ${res.status}`)
+    }
   }
 
   async checkNormalTxns(chainId, address) {
@@ -94,15 +107,18 @@ class EtherscanClient {
 
   async checkActivity(chainId, address) {
     debug(`Checking activity on chain ${chainId} for ${address}`)
+    let normalErr = null
     try {
       if (await this.checkNormalTxns(chainId, address)) return true
     } catch (err) {
+      normalErr = err
       debug(`Normal txns error on chain ${chainId}:`, err.message)
     }
     try {
       if (await this.checkInternalTxns(chainId, address)) return true
     } catch (err) {
       debug(`Internal txns error on chain ${chainId}:`, err.message)
+      if (normalErr) throw err
     }
     return false
   }

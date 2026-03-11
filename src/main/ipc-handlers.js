@@ -183,7 +183,7 @@ export function registerIpcHandlers() {
   })
 
   ipcMain.handle(IPC.STATUS_GET, () => {
-    return { apiCallCount: client.apiCallCount }
+    return { apiCallCount: client.apiCallCount, apiErrorCount: client.apiErrorCount }
   })
 
   ipcMain.handle(IPC.ZOOM_GET, () => {
