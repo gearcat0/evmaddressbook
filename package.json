@@ -1,6 +1,6 @@
 {
   "name": "evmaddressbook",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Address book for EVM addresses with chain activity detection",
   "main": "./out/main/index.js",
   "scripts": {
@@ -15,6 +15,7 @@
   "build": {
     "appId": "com.evmaddressbook.app",
     "productName": "EVM Address Book",
+    "executableName": "evmaddressbook",
     "directories": {
       "output": "release"
     },

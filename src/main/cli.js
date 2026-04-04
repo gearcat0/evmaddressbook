@@ -1,8 +1,9 @@
+import { app } from 'electron'
 import { loadAddresses, loadChains, loadSettings } from './data-store'
 import { getDefaultDataDir } from './constants'
 
 export function handleCli(argv) {
-  const args = argv.slice(2)
+  const args = argv.slice(app.isPackaged ? 1 : 2)
 
   if (args.includes('--help') || args.includes('-h')) {
     printUsage()
@@ -10,7 +11,7 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    console.log('1.0.0')
+    console.log('1.0.1')
     return true
   }
 
