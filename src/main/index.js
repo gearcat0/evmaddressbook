@@ -40,20 +40,27 @@ function createWindow() {
   }
 }
 
-const shouldQuit = handleCli(process.argv)
-if (shouldQuit) {
-  process.exit(process.exitCode || 0)
-}
-
-app.whenReady().then(() => {
-  registerIpcHandlers()
-  createWindow()
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+const cliResult = handleCli(process.argv)
+if (cliResult && typeof cliResult.then === 'function') {
+  cliResult.then(shouldQuit => {
+    if (shouldQuit) process.exit(process.exitCode || 0)
+  }).catch(err => {
+    console.error(err.message)
+    process.exit(1)
   })
-})
+} else if (cliResult) {
+  process.exit(process.exitCode || 0)
+} else {
+  app.whenReady().then(() => {
+    registerIpcHandlers()
+    createWindow()
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit()
+  })
+}

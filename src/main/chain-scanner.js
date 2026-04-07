@@ -3,8 +3,11 @@ import { loadChains, loadAddresses, saveAddresses } from './data-store'
 import { resolveAddressType } from './address-type-resolver'
 import { debug } from './constants'
 
-export async function scanAddress(address, sender) {
-  const chains = loadChains().filter(c => c.enabled !== false)
+export async function scanAddress(address, sender, filterChainId = null) {
+  let chains = loadChains().filter(c => c.enabled !== false)
+  if (filterChainId) {
+    chains = chains.filter(c => String(c.chainid) === filterChainId)
+  }
   const activeChains = {}
   const scanErrors = []
   const total = chains.length
