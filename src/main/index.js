@@ -3,6 +3,14 @@ import path from 'path'
 import { handleCli } from './cli'
 import { registerIpcHandlers } from './ipc-handlers'
 
+const cliFlags = ['--help', '-h', '--version', '-v', '--addresses', '--chains', '--scan', '--rescan', '--abi']
+const isCliMode = process.argv.some(a => cliFlags.includes(a))
+
+// Suppress Chromium warnings on stderr in CLI mode (VA-API, systemd scope)
+if (isCliMode && process.platform === 'linux') {
+  app.commandLine.appendSwitch('disable-features', 'VaapiVideoDecodeLinuxGL,VaapiVideoEncoder,SystemdUnitScope')
+}
+
 let mainWindow
 
 function createWindow() {

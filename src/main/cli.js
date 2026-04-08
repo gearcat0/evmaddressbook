@@ -14,7 +14,7 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    console.log('1.0.1')
+    console.log('1.0.2')
     return true
   }
 
@@ -28,6 +28,10 @@ export function handleCli(argv) {
     const chains = loadChains()
     console.log(JSON.stringify(chains, null, 2))
     return true
+  }
+
+  if (args.includes('--rescan')) {
+    return runRescan()
   }
 
   if (args.includes('--scan')) {
@@ -73,6 +77,31 @@ export function handleCli(argv) {
   return false
 }
 
+async function runRescan() {
+  const addresses = loadAddresses()
+  if (addresses.length === 0) {
+    console.error('No addresses in address book')
+    process.exitCode = 1
+    return true
+  }
+
+  const results = {}
+  for (let i = 0; i < addresses.length; i++) {
+    const addr = addresses[i].address
+    console.error(`\nRescan ${i + 1}/${addresses.length}: ${addr}`)
+    const sender = (channel, data) => {
+      if (channel === 'scan:progress') {
+        const phase = data.phase === 'scanning' ? 'Scanning' : 'Discovering'
+        console.error(`  ${phase} ${data.chainName} (${data.current}/${data.total})`)
+      }
+    }
+    results[addr] = await scanAddress(addr, sender)
+  }
+
+  console.log(JSON.stringify(results, null, 2))
+  return true
+}
+
 async function runScan(address, chainId) {
   const sender = (channel, data) => {
     if (channel === 'scan:progress') {
@@ -105,6 +134,7 @@ function printUsage() {
   console.log(`Usage: evmaddressbook [options]
 
 Options:
+  --rescan                    Re-scan all addresses in the address book
   --scan <address> [chainId]  Scan address for chain activity and exit
   --abi <address> <chainId>   Print contract ABI as JSON and exit
   --addresses                 Print all addresses as JSON and exit
