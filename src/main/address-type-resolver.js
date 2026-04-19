@@ -193,6 +193,30 @@ export async function resolveAddressType(chainId, address) {
       errors.push(`Implementation lookup failed on chain ${chainId}: ${err.message}`)
       debug(`Implementation lookup failed for ${address} on chain ${chainId}:`, err.message)
     }
+
+    // Fetch ABI and source for the implementation contract
+    if (result.implementationAddress) {
+      try {
+        const implSource = await withRetry(() => getSourceCode(chainId, result.implementationAddress), `getsourcecode impl(${chainId})`)
+        if (implSource) {
+          if (implSource.ContractName) result.implementationName = implSource.ContractName
+          const implDir = ensureContractDir(result.implementationAddress, chainId)
+          if (implSource.ABI && implSource.ABI !== 'Contract source code not verified') {
+            try {
+              writeJsonSafe(path.join(implDir, 'abi.json'), JSON.parse(implSource.ABI))
+            } catch {
+              writeJsonSafe(path.join(implDir, 'abi.json'), implSource.ABI)
+            }
+          }
+          if (implSource.SourceCode) {
+            writeJsonSafe(path.join(implDir, 'source.json'), { sourceCode: implSource.SourceCode })
+          }
+        }
+      } catch (err) {
+        errors.push(`Implementation getsourcecode failed on chain ${chainId}: ${err.message}`)
+        debug(`getsourcecode failed for implementation ${result.implementationAddress} on chain ${chainId}:`, err.message)
+      }
+    }
   }
 
   // Step 5: If GnosisSafeProxy or SafeProxy, get Safe details
