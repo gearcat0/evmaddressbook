@@ -5,6 +5,7 @@ import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, sav
 import { client } from './etherscan-client'
 import { scanAddress } from './chain-scanner'
 import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
+import { anytypeClient } from './anytype-client'
 
 async function fetchRpcsJson() {
   const resp = await fetch(CHAINLIST_RPCS_URL)
@@ -196,6 +197,11 @@ export function registerIpcHandlers() {
 
   ipcMain.handle(IPC.STATUS_GET, () => {
     return { apiCallCount: client.apiCallCount, apiErrorCount: client.apiErrorCount }
+  })
+
+  ipcMain.handle(IPC.ANYTYPE_LIST_SPACES, async () => {
+    const spaces = await anytypeClient.listSpaces()
+    return spaces.map(s => ({ id: s.id, name: s.name }))
   })
 
   ipcMain.handle(IPC.ZOOM_GET, () => {

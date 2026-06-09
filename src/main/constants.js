@@ -24,12 +24,16 @@ export const IPC = {
   CHAINS_SET_TESTNETS_ENABLED: 'chains:setTestnetsEnabled',
   STATUS_GET: 'status:get',
   ZOOM_GET: 'zoom:get',
-  ZOOM_SET: 'zoom:set'
+  ZOOM_SET: 'zoom:set',
+  ANYTYPE_LIST_SPACES: 'anytype:listSpaces'
 }
 
 export const ETHERSCAN_V2_URL = 'https://api.etherscan.io/v2/api'
 export const ETHERSCAN_CHAINLIST_URL = 'https://api.etherscan.io/v2/chainlist'
 export const RATE_LIMIT_MS = 334
+
+export const ANYTYPE_API_URL = 'http://127.0.0.1:31009/v1'
+export const ANYTYPE_API_VERSION = '2025-11-08'
 
 export const CHAINLIST_RPCS_URL = 'https://chainlist.org/rpcs.json'
 export const ICON_METADATA_BASE_URL = 'https://raw.githubusercontent.com/ethereum-lists/chains/master/_data/icons'

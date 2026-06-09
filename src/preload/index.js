@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('api', {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   updateSettings: (data) => ipcRenderer.invoke('settings:update', data),
 
+  // Anytype
+  anytypeListSpaces: () => ipcRenderer.invoke('anytype:listSpaces'),
+
   // Status
   getStatus: () => ipcRenderer.invoke('status:get'),
   getZoom: () => ipcRenderer.invoke('zoom:get'),
