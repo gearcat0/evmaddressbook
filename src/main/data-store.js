@@ -61,8 +61,60 @@ function saveJson(name, data) {
   atomicWriteSync(filePath(name), data)
 }
 
-export function loadAddresses() {
-  const addresses = loadJson('addresses.json', [])
+export const DEFAULT_BOOK = 'Default'
+
+// The default book keeps the original filename for backward compatibility;
+// other books are stored as addressbook_<base64url(name)>.json
+function bookFileName(book) {
+  if (!book || book === DEFAULT_BOOK) return 'addresses.json'
+  const encoded = Buffer.from(String(book), 'utf-8').toString('base64url')
+  return `addressbook_${encoded}.json`
+}
+
+export function listBooks() {
+  const books = [DEFAULT_BOOK]
+  try {
+    for (const file of fs.readdirSync(ensureDataDir())) {
+      const match = file.match(/^addressbook_(.+)\.json$/)
+      if (!match) continue
+      try {
+        const name = Buffer.from(match[1], 'base64url').toString('utf-8')
+        if (name && name !== DEFAULT_BOOK) books.push(name)
+      } catch {}
+    }
+  } catch (err) {
+    debug('Error listing books:', err.message)
+  }
+  return books
+}
+
+export function bookExists(book) {
+  if (!book || book === DEFAULT_BOOK) return true
+  return fs.existsSync(filePath(bookFileName(book)))
+}
+
+export function createBook(name) {
+  const trimmed = (name || '').trim()
+  if (!trimmed) throw new Error('Address book name cannot be empty')
+  if (trimmed === DEFAULT_BOOK) throw new Error('"Default" is a reserved name')
+  if (bookExists(trimmed)) throw new Error('An address book with that name already exists')
+  saveJson(bookFileName(trimmed), [])
+  debug('Created address book:', trimmed)
+  return trimmed
+}
+
+export function deleteBook(name) {
+  if (!name || name === DEFAULT_BOOK) throw new Error('The Default address book cannot be deleted')
+  const fp = filePath(bookFileName(name))
+  if (!fs.existsSync(fp)) throw new Error('Address book not found')
+  fs.unlinkSync(fp)
+  debug('Deleted address book:', name)
+  return true
+}
+
+export function loadAddresses(book) {
+  const file = bookFileName(book)
+  const addresses = loadJson(file, [])
   let migrated = false
   for (const entry of addresses) {
     if (Array.isArray(entry.activeChains)) {
@@ -75,14 +127,14 @@ export function loadAddresses() {
     }
   }
   if (migrated) {
-    saveJson('addresses.json', addresses)
+    saveJson(file, addresses)
     debug('Migrated activeChains from array to map format')
   }
   return addresses
 }
 
-export function saveAddresses(addresses) {
-  saveJson('addresses.json', addresses)
+export function saveAddresses(addresses, book) {
+  saveJson(bookFileName(book), addresses)
 }
 
 export function loadChains() {

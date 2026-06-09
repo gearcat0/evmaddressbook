@@ -290,6 +290,29 @@ a.chain-badge:hover {
   font-weight: 600;
 }
 
+/* Address book bar */
+.book-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.book-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.book-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 /* Filter bar */
 .filter-bar {
   display: flex;

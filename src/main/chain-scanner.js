@@ -3,7 +3,7 @@ import { loadChains, loadAddresses, saveAddresses } from './data-store'
 import { resolveAddressType } from './address-type-resolver'
 import { debug } from './constants'
 
-export async function scanAddress(address, sender, filterChainId = null) {
+export async function scanAddress(address, sender, filterChainId = null, book = null) {
   let chains = loadChains().filter(c => c.enabled !== false)
   if (filterChainId) {
     chains = chains.filter(c => String(c.chainid) === filterChainId)
@@ -71,13 +71,13 @@ export async function scanAddress(address, sender, filterChainId = null) {
     }
   }
 
-  const addresses = loadAddresses()
+  const addresses = loadAddresses(book)
   const idx = addresses.findIndex(a => a.address.toLowerCase() === address.toLowerCase())
   if (idx !== -1) {
     addresses[idx].activeChains = activeChains
     addresses[idx].lastScanned = new Date().toISOString()
     addresses[idx].lastScanErrors = scanErrors
-    saveAddresses(addresses)
+    saveAddresses(addresses, book)
   }
 
   sender('scan:complete', { address, activeChains, errors: scanErrors })

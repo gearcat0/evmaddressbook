@@ -1,12 +1,31 @@
 import fs from 'fs'
 import path from 'path'
 import { app } from 'electron'
-import { loadAddresses, loadChains, getDataDir } from './data-store'
+import { loadAddresses, loadChains, getDataDir, bookExists, listBooks } from './data-store'
 import { getDefaultDataDir } from './constants'
 import { scanAddress } from './chain-scanner'
 
+// Pull "--book <name>" out of the argument list, returning the remaining args.
+function extractBook(args) {
+  const idx = args.indexOf('--book')
+  if (idx === -1) return { args, book: null }
+  const name = args[idx + 1]
+  if (!name || name.startsWith('--')) {
+    return { args, book: null, error: 'Usage: --book <name>' }
+  }
+  const rest = args.slice(0, idx).concat(args.slice(idx + 2))
+  return { args: rest, book: name }
+}
+
 export function handleCli(argv) {
-  const args = argv.slice(app.isPackaged ? 1 : 2)
+  const rawArgs = argv.slice(app.isPackaged ? 1 : 2)
+
+  const { args, book, error: bookError } = extractBook(rawArgs)
+  if (bookError) {
+    console.error(bookError)
+    process.exitCode = 1
+    return true
+  }
 
   if (args.includes('--help') || args.includes('-h')) {
     printUsage()
@@ -14,12 +33,18 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    console.log('1.0.3')
+    console.log('1.1.0')
+    return true
+  }
+
+  if (book !== null && !bookExists(book)) {
+    console.error(`Unknown address book: ${book}`)
+    process.exitCode = 1
     return true
   }
 
   if (args.includes('--addresses')) {
-    const addresses = loadAddresses()
+    const addresses = loadAddresses(book)
     console.log(JSON.stringify(addresses, null, 2))
     return true
   }
@@ -30,8 +55,13 @@ export function handleCli(argv) {
     return true
   }
 
+  if (args.includes('--list-books')) {
+    console.log(JSON.stringify(listBooks(), null, 2))
+    return true
+  }
+
   if (args.includes('--rescan')) {
-    return runRescan()
+    return runRescan(book)
   }
 
   if (args.includes('--scan')) {
@@ -43,7 +73,7 @@ export function handleCli(argv) {
       process.exitCode = 1
       return true
     }
-    return runScan(address, chainId && !chainId.startsWith('--') ? chainId : null)
+    return runScan(address, chainId && !chainId.startsWith('--') ? chainId : null, book)
   }
 
   if (args.includes('--abi')) {
@@ -77,8 +107,8 @@ export function handleCli(argv) {
   return false
 }
 
-async function runRescan() {
-  const addresses = loadAddresses()
+async function runRescan(book) {
+  const addresses = loadAddresses(book)
   if (addresses.length === 0) {
     console.error('No addresses in address book')
     process.exitCode = 1
@@ -95,14 +125,14 @@ async function runRescan() {
         console.error(`  ${phase} ${data.chainName} (${data.current}/${data.total})`)
       }
     }
-    results[addr] = await scanAddress(addr, sender)
+    results[addr] = await scanAddress(addr, sender, null, book)
   }
 
   console.log(JSON.stringify(results, null, 2))
   return true
 }
 
-async function runScan(address, chainId) {
+async function runScan(address, chainId, book) {
   const sender = (channel, data) => {
     if (channel === 'scan:progress') {
       const phase = data.phase === 'scanning' ? 'Scanning' : 'Discovering'
@@ -125,7 +155,7 @@ async function runScan(address, chainId) {
     }
   }
 
-  const result = await scanAddress(address, sender, chainId ? String(chainId) : null)
+  const result = await scanAddress(address, sender, chainId ? String(chainId) : null, book)
   console.log(JSON.stringify(result, null, 2))
   return true
 }
@@ -139,6 +169,8 @@ Options:
   --abi <address> <chainId>   Print contract ABI as JSON and exit
   --addresses                 Print all addresses as JSON and exit
   --chains                    Print all chains as JSON and exit
+  --list-books                Print all address book names as JSON and exit
+  --book <name>               Operate on the named address book (default: Default)
   --version                   Print version and exit
   --help                      Show this help message and exit
 

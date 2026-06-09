@@ -1,7 +1,7 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { getAddress } from 'ethers'
 import { IPC, CHAINLIST_RPCS_URL, debug } from './constants'
-import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir } from './data-store'
+import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, deleteBook } from './data-store'
 import { client } from './etherscan-client'
 import { scanAddress } from './chain-scanner'
 import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
@@ -39,13 +39,13 @@ async function populateRpcUrls(chains) {
 }
 
 export function registerIpcHandlers() {
-  ipcMain.handle(IPC.ADDRESSES_LIST, () => {
-    return loadAddresses()
+  ipcMain.handle(IPC.ADDRESSES_LIST, (_event, book) => {
+    return loadAddresses(book)
   })
 
-  ipcMain.handle(IPC.ADDRESSES_ADD, (_event, { address, description }) => {
+  ipcMain.handle(IPC.ADDRESSES_ADD, (_event, { address, description, book }) => {
     const checksummed = getAddress(address)
-    const addresses = loadAddresses()
+    const addresses = loadAddresses(book)
     if (addresses.some(a => a.address.toLowerCase() === checksummed.toLowerCase())) {
       throw new Error('Address already exists')
     }
@@ -56,38 +56,50 @@ export function registerIpcHandlers() {
       lastScanned: null
     }
     addresses.push(entry)
-    saveAddresses(addresses)
+    saveAddresses(addresses, book)
     debug('Added address:', checksummed)
     return entry
   })
 
-  ipcMain.handle(IPC.ADDRESSES_UPDATE, (_event, { address, description }) => {
-    const addresses = loadAddresses()
+  ipcMain.handle(IPC.ADDRESSES_UPDATE, (_event, { address, description, book }) => {
+    const addresses = loadAddresses(book)
     const idx = addresses.findIndex(a => a.address.toLowerCase() === address.toLowerCase())
     if (idx === -1) throw new Error('Address not found')
     if (description !== undefined) addresses[idx].description = description
-    saveAddresses(addresses)
+    saveAddresses(addresses, book)
     debug('Updated address:', address)
     return addresses[idx]
   })
 
-  ipcMain.handle(IPC.ADDRESSES_DELETE, (_event, { address }) => {
-    const addresses = loadAddresses()
+  ipcMain.handle(IPC.ADDRESSES_DELETE, (_event, { address, book }) => {
+    const addresses = loadAddresses(book)
     const filtered = addresses.filter(a => a.address.toLowerCase() !== address.toLowerCase())
     if (filtered.length === addresses.length) throw new Error('Address not found')
-    saveAddresses(filtered)
+    saveAddresses(filtered, book)
     debug('Deleted address:', address)
     return true
   })
 
-  ipcMain.handle(IPC.ADDRESSES_SCAN, (_event, { address }) => {
+  ipcMain.handle(IPC.ADDRESSES_SCAN, (_event, { address, book }) => {
     const win = BrowserWindow.getFocusedWindow()
     const sender = (channel, data) => {
       if (win && !win.isDestroyed()) {
         win.webContents.send(channel, data)
       }
     }
-    return scanAddress(address, sender)
+    return scanAddress(address, sender, null, book)
+  })
+
+  ipcMain.handle(IPC.BOOKS_LIST, () => {
+    return listBooks()
+  })
+
+  ipcMain.handle(IPC.BOOKS_CREATE, (_event, name) => {
+    return createBook(name)
+  })
+
+  ipcMain.handle(IPC.BOOKS_DELETE, (_event, name) => {
+    return deleteBook(name)
   })
 
   ipcMain.handle(IPC.CHAINS_LIST, () => {

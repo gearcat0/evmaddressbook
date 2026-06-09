@@ -5,6 +5,7 @@ A desktop application for managing EVM addresses and monitoring their on-chain a
 ## Features
 
 - **Address Management** — Add, edit, and delete Ethereum addresses with descriptions
+- **Multiple Address Books** — Organize addresses into separate books; switch between them, create new ones, and delete them (the built-in "Default" book cannot be deleted)
 - **Multi-Chain Scanning** — Detect activity (transactions, internal transactions, token transfers) across all Etherscan-supported chains
 - **Address Type Discovery** — Identify whether each address is an EOA, contract, transparent proxy, or Gnosis Safe, with detailed metadata (implementation address, Safe owners/threshold, contract creator, etc.)
 - **Contract Storage** — ABI and source code saved locally for verified contracts
@@ -77,6 +78,13 @@ npm run build && node out/main/index.js --addresses
 
 # List chains
 node out/main/index.js --chains
+
+# List address book names
+node out/main/index.js --list-books
+
+# Operate on a specific address book (defaults to "Default" when omitted)
+node out/main/index.js --addresses --book Work
+node out/main/index.js --rescan --book Work
 ```
 
 ## Data Storage
@@ -90,7 +98,8 @@ Data is stored as JSON files in a platform-specific directory:
 | Windows | `%APPDATA%\evmaddressbook\` |
 
 Files:
-- `addresses.json` — Saved addresses with chain activity and type info
+- `addresses.json` — The "Default" address book (addresses with chain activity and type info)
+- `addressbook_<base64url-name>.json` — Additional address books, one file per book
 - `chains.json` — Chain list from Etherscan
 - `settings.json` — API key and data directory config
 - `icons/chains/` — Downloaded chain icons

@@ -3,7 +3,7 @@ import path from 'path'
 import { handleCli } from './cli'
 import { registerIpcHandlers } from './ipc-handlers'
 
-const cliFlags = ['--help', '-h', '--version', '-v', '--addresses', '--chains', '--scan', '--rescan', '--abi']
+const cliFlags = ['--help', '-h', '--version', '-v', '--addresses', '--chains', '--list-books', '--scan', '--rescan', '--abi']
 const isCliMode = process.argv.some(a => cliFlags.includes(a))
 
 // Suppress Chromium warnings on stderr in CLI mode (VA-API, systemd scope)

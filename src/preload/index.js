@@ -2,11 +2,16 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
   // Addresses
-  listAddresses: () => ipcRenderer.invoke('addresses:list'),
+  listAddresses: (book) => ipcRenderer.invoke('addresses:list', book),
   addAddress: (data) => ipcRenderer.invoke('addresses:add', data),
   updateAddress: (data) => ipcRenderer.invoke('addresses:update', data),
   deleteAddress: (data) => ipcRenderer.invoke('addresses:delete', data),
   scanAddress: (data) => ipcRenderer.invoke('addresses:scan', data),
+
+  // Address books
+  listBooks: () => ipcRenderer.invoke('books:list'),
+  createBook: (name) => ipcRenderer.invoke('books:create', name),
+  deleteBook: (name) => ipcRenderer.invoke('books:delete', name),
 
   // Chains
   listChains: () => ipcRenderer.invoke('chains:list'),
