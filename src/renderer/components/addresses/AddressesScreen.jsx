@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import useAddresses from '../../hooks/useAddresses'
 import useBooks from '../../hooks/useBooks'
 import useChains from '../../hooks/useChains'
+import useSettings from '../../hooks/useSettings'
 import AddressForm from './AddressForm'
 import AddressTable from './AddressTable'
 import BookSyncControl from './BookSyncControl'
@@ -11,6 +12,8 @@ export default function AddressesScreen() {
   const { books, current, setCurrent, create, remove: removeBook, reload: reloadBooks, DEFAULT_BOOK } = useBooks()
   const { addresses, loading, error, add, update, remove, scan, reload } = useAddresses(current)
   const { chains } = useChains()
+  const { settings } = useSettings()
+  const anytypeReady = !!settings.anytypeApiKey
   const [showForm, setShowForm] = useState(false)
   const [scanState, setScanState] = useState(null)
 
@@ -120,12 +123,14 @@ export default function AddressesScreen() {
           >
             New Book
           </button>
-          <button
-            className="btn btn-secondary btn-small"
-            onClick={() => { closeBookPrompts(); setShowImport(true) }}
-          >
-            Import from Anytype
-          </button>
+          {anytypeReady && (
+            <button
+              className="btn btn-secondary btn-small"
+              onClick={() => { closeBookPrompts(); setShowImport(true) }}
+            >
+              Import from Anytype
+            </button>
+          )}
           <button
             className="btn btn-danger btn-small"
             disabled={current === DEFAULT_BOOK}

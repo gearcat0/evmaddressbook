@@ -282,6 +282,8 @@ a.chain-badge:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 16px;
 }
 
@@ -294,6 +296,7 @@ a.chain-badge:hover {
 .book-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
