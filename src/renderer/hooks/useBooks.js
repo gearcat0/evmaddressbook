@@ -28,5 +28,5 @@ export default function useBooks() {
     return list
   }, [load])
 
-  return { books, current, setCurrent, create, remove, DEFAULT_BOOK }
+  return { books, current, setCurrent, create, remove, reload: load, DEFAULT_BOOK }
 }

@@ -84,6 +84,47 @@ class AnytypeClient {
   async addToList(spaceId, listId, objectIds) {
     return this.request('POST', `/spaces/${spaceId}/lists/${listId}/objects`, { objects: objectIds })
   }
+
+  async getListViews(spaceId, listId) {
+    const data = await this.request('GET', `/spaces/${spaceId}/lists/${listId}/views`)
+    return (data && data.data) || []
+  }
+
+  // Collects every page of a paginated GET endpoint.
+  async getAllPages(path) {
+    const all = []
+    let offset = 0
+    const limit = 100
+    for (;;) {
+      const sep = path.includes('?') ? '&' : '?'
+      const data = await this.request('GET', `${path}${sep}offset=${offset}&limit=${limit}`)
+      const items = (data && data.data) || []
+      all.push(...items)
+      const pg = data && data.pagination
+      if (!pg || !pg.has_more) break
+      offset += limit
+    }
+    return all
+  }
+
+  async getListObjects(spaceId, listId, viewId) {
+    return this.getAllPages(`/spaces/${spaceId}/lists/${listId}/views/${viewId}/objects`)
+  }
+
+  async searchSpace(spaceId, body) {
+    const all = []
+    let offset = 0
+    const limit = 100
+    for (;;) {
+      const data = await this.request('POST', `/spaces/${spaceId}/search?offset=${offset}&limit=${limit}`, body)
+      const items = (data && data.data) || []
+      all.push(...items)
+      const pg = data && data.pagination
+      if (!pg || !pg.has_more) break
+      offset += limit
+    }
+    return all
+  }
 }
 
 export const anytypeClient = new AnytypeClient()

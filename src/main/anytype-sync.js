@@ -1,5 +1,6 @@
+import { getAddress } from 'ethers'
 import { anytypeClient } from './anytype-client'
-import { loadAddresses, saveAddresses, loadChains, loadSettings, saveSettings } from './data-store'
+import { loadAddresses, saveAddresses, loadChains, loadSettings, saveSettings, createBook } from './data-store'
 import { debug } from './constants'
 
 const TYPE_NAME = 'Address'
@@ -57,7 +58,39 @@ function buildProperties(entry, chainNameOf) {
   return props
 }
 
-// Push-only sync of one address book into its mapped Anytype space.
+function propText(obj, key) {
+  const p = (obj.properties || []).find(p => p.key === key)
+  return p ? (p.text || '') : ''
+}
+
+// Read the address objects that belong to a collection.
+async function fetchRemoteMembers(spaceId, collectionId) {
+  const views = await anytypeClient.getListViews(spaceId, collectionId)
+  if (views.length === 0) return []
+  const objects = await anytypeClient.getListObjects(spaceId, collectionId, views[0].id)
+  return objects
+    .map(o => ({ id: o.id, name: o.name || '', address: propText(o, 'evm_address') }))
+    .filter(m => m.address)
+}
+
+// Build a local address entry from a pulled Anytype object.
+function remoteToEntry(member) {
+  let address = member.address
+  try { address = getAddress(member.address) } catch {}
+  return {
+    address,
+    description: member.name || '',
+    activeChains: {},
+    lastScanned: null,
+    anytypeObjectId: member.id
+  }
+}
+
+// Two-way sync of one address book with its mapped Anytype collection.
+// Set membership is merged in both directions (matched on the EVM address):
+// addresses only in Anytype are pulled in; addresses only local are pushed up.
+// For entries present on both sides the local copy wins, but an empty local
+// description is filled from Anytype. Deletions are not propagated either way.
 export async function syncBook(book) {
   const settings = loadSettings()
   const mapping = (settings.anytypeSpaces || {})[book]
@@ -91,23 +124,54 @@ export async function syncBook(book) {
     return c ? c.chainname : `Chain ${id}`
   }
 
+  const remoteMembers = await fetchRemoteMembers(spaceId, collectionId)
+  const remoteByAddr = new Map(remoteMembers.map(m => [m.address.toLowerCase(), m]))
+  const remoteById = new Map(remoteMembers.map(m => [m.id, m]))
+
   const addresses = loadAddresses(book)
+  const localByAddr = new Map(addresses.map(a => [a.address.toLowerCase(), a]))
+
+  // PULL: add addresses that exist only in Anytype
+  let pulled = 0
+  const pulledAddrs = new Set()
+  for (const m of remoteMembers) {
+    const lc = m.address.toLowerCase()
+    if (!localByAddr.has(lc)) {
+      const entry = remoteToEntry(m)
+      addresses.push(entry)
+      localByAddr.set(lc, entry)
+      pulledAddrs.add(entry.address.toLowerCase())
+      pulled++
+    }
+  }
+
+  // PUSH / UPDATE / LINK the local side up to Anytype
   let created = 0
   let updated = 0
   const newObjectIds = []
 
   for (const entry of addresses) {
+    const lc = entry.address.toLowerCase()
+    if (pulledAddrs.has(lc)) continue // just pulled; already identical to remote
+
+    const remote = entry.anytypeObjectId
+      ? remoteById.get(entry.anytypeObjectId)
+      : remoteByAddr.get(lc)
+
+    // Fill an empty local description from Anytype before pushing
+    if (remote && !entry.description && remote.name) entry.description = remote.name
+
     const name = entry.description || entry.address
     const properties = buildProperties(entry, chainNameOf)
 
-    if (entry.anytypeObjectId) {
+    if (remote) {
+      if (!entry.anytypeObjectId) entry.anytypeObjectId = remote.id
       try {
         await anytypeClient.updateObject(spaceId, entry.anytypeObjectId, { name, properties })
         updated++
         continue
       } catch (err) {
         if (err.status !== 404) throw err
-        // Object was deleted in Anytype — fall through and recreate
         debug('Anytype object missing, recreating:', entry.anytypeObjectId)
       }
     }
@@ -128,6 +192,30 @@ export async function syncBook(book) {
   settings.anytypeSyncState = syncStateAll
   saveSettings(settings)
 
-  debug(`Synced book "${book}": ${created} created, ${updated} updated`)
-  return { book, spaceId, collectionId, created, updated, total: addresses.length }
+  debug(`Synced book "${book}": ${created} created, ${updated} updated, ${pulled} pulled`)
+  return { book, spaceId, collectionId, created, updated, pulled, total: addresses.length }
+}
+
+// List the collections available in a space, for the import picker.
+export async function listSpaceCollections(spaceId) {
+  const objects = await anytypeClient.searchSpace(spaceId, { types: ['collection'] })
+  return objects.map(o => ({ id: o.id, name: o.name || '(untitled)' }))
+}
+
+// Create a new local address book linked to an existing Anytype collection and
+// pull its contents.
+export async function importBook({ spaceId, spaceName, collectionId, bookName }) {
+  const book = createBook(bookName) // throws if the name is taken/invalid
+
+  const settings = loadSettings()
+  const spaces = settings.anytypeSpaces || {}
+  spaces[book] = { id: spaceId, name: spaceName || '' }
+  settings.anytypeSpaces = spaces
+  const syncStateAll = settings.anytypeSyncState || {}
+  syncStateAll[book] = { spaceId, collectionId }
+  settings.anytypeSyncState = syncStateAll
+  saveSettings(settings)
+
+  const result = await syncBook(book)
+  return { ...result, book }
 }

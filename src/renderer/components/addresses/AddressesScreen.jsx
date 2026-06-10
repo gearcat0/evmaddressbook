@@ -5,9 +5,10 @@ import useChains from '../../hooks/useChains'
 import AddressForm from './AddressForm'
 import AddressTable from './AddressTable'
 import BookSyncControl from './BookSyncControl'
+import ImportBookPanel from './ImportBookPanel'
 
 export default function AddressesScreen() {
-  const { books, current, setCurrent, create, remove: removeBook, DEFAULT_BOOK } = useBooks()
+  const { books, current, setCurrent, create, remove: removeBook, reload: reloadBooks, DEFAULT_BOOK } = useBooks()
   const { addresses, loading, error, add, update, remove, scan, reload } = useAddresses(current)
   const { chains } = useChains()
   const [showForm, setShowForm] = useState(false)
@@ -16,6 +17,7 @@ export default function AddressesScreen() {
   // Inline book prompts (no modal dialogs)
   const [newBookName, setNewBookName] = useState(null) // null = hidden, string = shown
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [bookError, setBookError] = useState('')
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function AddressesScreen() {
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key !== 'Escape') return
-      if (newBookName !== null || confirmDelete) {
+      if (newBookName !== null || confirmDelete || showImport) {
         closeBookPrompts()
       } else if (showForm) {
         setShowForm(false)
@@ -44,7 +46,7 @@ export default function AddressesScreen() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [newBookName, confirmDelete, showForm])
+  }, [newBookName, confirmDelete, showImport, showForm])
 
   const handleAdd = async ({ address, description }) => {
     await add(address, description)
@@ -68,7 +70,14 @@ export default function AddressesScreen() {
   const closeBookPrompts = () => {
     setNewBookName(null)
     setConfirmDelete(false)
+    setShowImport(false)
     setBookError('')
+  }
+
+  const handleImported = async (book) => {
+    closeBookPrompts()
+    await reloadBooks()
+    setCurrent(book)
   }
 
   const handleSelectBook = (e) => {
@@ -112,6 +121,12 @@ export default function AddressesScreen() {
             New Book
           </button>
           <button
+            className="btn btn-secondary btn-small"
+            onClick={() => { closeBookPrompts(); setShowImport(true) }}
+          >
+            Import from Anytype
+          </button>
+          <button
             className="btn btn-danger btn-small"
             disabled={current === DEFAULT_BOOK}
             title={current === DEFAULT_BOOK ? 'The Default address book cannot be deleted' : ''}
@@ -125,7 +140,11 @@ export default function AddressesScreen() {
         </button>
       </div>
 
-      <BookSyncControl book={current} />
+      <BookSyncControl book={current} onPulled={reload} />
+
+      {showImport && (
+        <ImportBookPanel onCancel={closeBookPrompts} onImported={handleImported} />
+      )}
 
       {newBookName !== null && (
         <div className="inline-form">

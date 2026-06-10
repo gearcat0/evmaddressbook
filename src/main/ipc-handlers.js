@@ -6,7 +6,7 @@ import { client } from './etherscan-client'
 import { scanAddress } from './chain-scanner'
 import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
 import { anytypeClient } from './anytype-client'
-import { syncBook } from './anytype-sync'
+import { syncBook, listSpaceCollections, importBook } from './anytype-sync'
 
 async function fetchRpcsJson() {
   const resp = await fetch(CHAINLIST_RPCS_URL)
@@ -207,6 +207,14 @@ export function registerIpcHandlers() {
 
   ipcMain.handle(IPC.ANYTYPE_SYNC_BOOK, (_event, book) => {
     return syncBook(book)
+  })
+
+  ipcMain.handle(IPC.ANYTYPE_LIST_COLLECTIONS, (_event, spaceId) => {
+    return listSpaceCollections(spaceId)
+  })
+
+  ipcMain.handle(IPC.ANYTYPE_IMPORT_BOOK, (_event, opts) => {
+    return importBook(opts)
   })
 
   ipcMain.handle(IPC.ZOOM_GET, () => {

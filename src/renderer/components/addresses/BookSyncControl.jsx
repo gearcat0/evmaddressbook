@@ -1,14 +1,18 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import useSettings from '../../hooks/useSettings'
 
 // Per-book Anytype sync target. The mapping lives in settings under
 // `anytypeSpaces`, keyed by address book name: { [book]: { id, name } }.
-export default function BookSyncControl({ book }) {
-  const { settings, update } = useSettings()
+export default function BookSyncControl({ book, onPulled }) {
+  const { settings, update, reload } = useSettings()
   const [open, setOpen] = useState(false)
   const [spaces, setSpaces] = useState(null) // null = not loaded
   const [status, setStatus] = useState(null) // null | {loading} | {error}
   const [syncStatus, setSyncStatus] = useState(null) // null | {syncing} | {done} | {error}
+
+  // Settings can change in the main process (e.g. on import); refresh the
+  // mapping whenever the selected book changes.
+  useEffect(() => { reload() }, [book, reload])
 
   const mapping = (settings.anytypeSpaces || {})[book] || null
 
@@ -47,6 +51,7 @@ export default function BookSyncControl({ book }) {
     try {
       const result = await window.api.anytypeSyncBook(book)
       setSyncStatus({ done: result })
+      if (result.pulled > 0 && onPulled) onPulled()
     } catch (err) {
       setSyncStatus({ error: err.message || 'Sync failed' })
     }
@@ -91,8 +96,8 @@ export default function BookSyncControl({ book }) {
       )}
       {syncStatus && syncStatus.done && (
         <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
-          Synced {syncStatus.done.total} address{syncStatus.done.total === 1 ? '' : 'es'} to Anytype
-          {' '}({syncStatus.done.created} created, {syncStatus.done.updated} updated).
+          Synced with Anytype — {syncStatus.done.total} total
+          {' '}({syncStatus.done.created} pushed, {syncStatus.done.updated} updated, {syncStatus.done.pulled} pulled).
         </div>
       )}
 
