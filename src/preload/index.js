@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Anytype
   anytypeListSpaces: () => ipcRenderer.invoke('anytype:listSpaces'),
+  anytypeSyncBook: (book) => ipcRenderer.invoke('anytype:syncBook', book),
 
   // Status
   getStatus: () => ipcRenderer.invoke('status:get'),

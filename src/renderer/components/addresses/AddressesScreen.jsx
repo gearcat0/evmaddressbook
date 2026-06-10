@@ -4,6 +4,7 @@ import useBooks from '../../hooks/useBooks'
 import useChains from '../../hooks/useChains'
 import AddressForm from './AddressForm'
 import AddressTable from './AddressTable'
+import BookSyncControl from './BookSyncControl'
 
 export default function AddressesScreen() {
   const { books, current, setCurrent, create, remove: removeBook, DEFAULT_BOOK } = useBooks()
@@ -123,6 +124,8 @@ export default function AddressesScreen() {
           {showForm ? 'Cancel' : 'Add Address'}
         </button>
       </div>
+
+      <BookSyncControl book={current} />
 
       {newBookName !== null && (
         <div className="inline-form">

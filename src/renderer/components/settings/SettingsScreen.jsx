@@ -12,7 +12,7 @@ export default function SettingsScreen() {
   const [showAnytypeKey, setShowAnytypeKey] = useState(false)
   const [anytypeKeyLoaded, setAnytypeKeyLoaded] = useState(false)
   const [anytypeSaved, setAnytypeSaved] = useState(false)
-  const [anytypeStatus, setAnytypeStatus] = useState(null) // null | {testing} | {spaces} | {error}
+  const [anytypeStatus, setAnytypeStatus] = useState(null) // null | {testing} | {ok,count} | {error}
 
   if (!keyLoaded && settings.etherscanApiKey !== undefined) {
     setApiKey(settings.etherscanApiKey || '')
@@ -38,13 +38,14 @@ export default function SettingsScreen() {
     setTimeout(() => setAnytypeSaved(false), 2000)
   }
 
+  // Saves the key and verifies it against the local API.
   const handleTestAnytype = async () => {
     setAnytypeStatus({ testing: true })
     try {
       // Persist the key first so the test uses what's in the box
       await update({ anytypeApiKey: anytypeKey })
-      const spaces = await window.api.anytypeListSpaces()
-      setAnytypeStatus({ spaces })
+      const list = await window.api.anytypeListSpaces()
+      setAnytypeStatus({ ok: true, count: list.length })
     } catch (err) {
       setAnytypeStatus({ error: err.message || 'Connection failed' })
     }
@@ -131,12 +132,10 @@ export default function SettingsScreen() {
         {anytypeStatus && anytypeStatus.error && (
           <div className="form-error" style={{ marginTop: 10 }}>{anytypeStatus.error}</div>
         )}
-        {anytypeStatus && anytypeStatus.spaces && (
+        {anytypeStatus && anytypeStatus.ok && (
           <div style={{ marginTop: 10, fontSize: 13, color: 'var(--text-secondary)' }}>
-            Connected — {anytypeStatus.spaces.length} space{anytypeStatus.spaces.length === 1 ? '' : 's'} found
-            {anytypeStatus.spaces.length > 0 && (
-              <span>: {anytypeStatus.spaces.map(s => s.name).join(', ')}</span>
-            )}
+            Connected — {anytypeStatus.count} space{anytypeStatus.count === 1 ? '' : 's'} found.
+            Choose a sync space per address book on the Addresses tab.
           </div>
         )}
       </div>

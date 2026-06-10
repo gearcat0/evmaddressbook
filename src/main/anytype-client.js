@@ -47,7 +47,9 @@ class AnytypeClient {
         const data = await res.json()
         detail = data.message || data.error || JSON.stringify(data)
       } catch {}
-      throw new Error(`Anytype API error ${res.status}${detail ? ': ' + detail : ''}`)
+      const err = new Error(`Anytype API error ${res.status}${detail ? ': ' + detail : ''}`)
+      err.status = res.status
+      throw err
     }
 
     if (res.status === 204) return null
@@ -57,6 +59,30 @@ class AnytypeClient {
   async listSpaces() {
     const data = await this.request('GET', '/spaces')
     return (data && data.data) || []
+  }
+
+  async listTypes(spaceId) {
+    const data = await this.request('GET', `/spaces/${spaceId}/types?limit=200`)
+    return (data && data.data) || []
+  }
+
+  async createType(spaceId, body) {
+    const data = await this.request('POST', `/spaces/${spaceId}/types`, body)
+    return data && data.type
+  }
+
+  async createObject(spaceId, body) {
+    const data = await this.request('POST', `/spaces/${spaceId}/objects`, body)
+    return data && data.object
+  }
+
+  async updateObject(spaceId, objectId, body) {
+    const data = await this.request('PATCH', `/spaces/${spaceId}/objects/${objectId}`, body)
+    return data && data.object
+  }
+
+  async addToList(spaceId, listId, objectIds) {
+    return this.request('POST', `/spaces/${spaceId}/lists/${listId}/objects`, { objects: objectIds })
   }
 }
 

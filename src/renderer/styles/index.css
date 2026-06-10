@@ -313,6 +313,19 @@ a.chain-badge:hover {
   border-color: var(--accent);
 }
 
+/* Per-book Anytype sync control */
+.book-sync {
+  margin-bottom: 16px;
+}
+
+.book-sync-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 /* Filter bar */
 .filter-bar {
   display: flex;

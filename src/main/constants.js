@@ -25,7 +25,8 @@ export const IPC = {
   STATUS_GET: 'status:get',
   ZOOM_GET: 'zoom:get',
   ZOOM_SET: 'zoom:set',
-  ANYTYPE_LIST_SPACES: 'anytype:listSpaces'
+  ANYTYPE_LIST_SPACES: 'anytype:listSpaces',
+  ANYTYPE_SYNC_BOOK: 'anytype:syncBook'
 }
 
 export const ETHERSCAN_V2_URL = 'https://api.etherscan.io/v2/api'
