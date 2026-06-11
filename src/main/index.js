@@ -2,6 +2,7 @@ import { app, BrowserWindow, screen, shell } from 'electron'
 import path from 'path'
 import { handleCli } from './cli'
 import { registerIpcHandlers } from './ipc-handlers'
+import { createAppMenu } from './menu'
 
 const cliFlags = ['--help', '-h', '--version', '-v', '--addresses', '--chains', '--list-books', '--scan', '--rescan', '--abi']
 const isCliMode = process.argv.some(a => cliFlags.includes(a))
@@ -61,6 +62,7 @@ if (cliResult && typeof cliResult.then === 'function') {
 } else {
   app.whenReady().then(() => {
     registerIpcHandlers()
+    createAppMenu()
     createWindow()
 
     app.on('activate', () => {
