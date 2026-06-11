@@ -154,25 +154,32 @@ export async function syncBook(book) {
     const lc = entry.address.toLowerCase()
     if (pulledAddrs.has(lc)) continue // just pulled; already identical to remote
 
-    const remote = entry.anytypeObjectId
+    // The matched member is only used to fill an empty local description and to
+    // link by address. We must NOT gate the update on it: the collection view is
+    // indexed asynchronously and can omit recently-added objects, so an entry
+    // with a known object id is updated directly by id.
+    const member = entry.anytypeObjectId
       ? remoteById.get(entry.anytypeObjectId)
       : remoteByAddr.get(lc)
+    if (member && !entry.description && member.name) entry.description = member.name
 
-    // Fill an empty local description from Anytype before pushing
-    if (remote && !entry.description && remote.name) entry.description = remote.name
-
+    const objectId = entry.anytypeObjectId || (member && member.id) || null
     const name = entry.description || entry.address
     const properties = buildProperties(entry, chainNameOf)
 
-    if (remote) {
-      if (!entry.anytypeObjectId) entry.anytypeObjectId = remote.id
+    if (objectId) {
       try {
-        await anytypeClient.updateObject(spaceId, entry.anytypeObjectId, { name, properties })
+        await anytypeClient.updateObject(spaceId, objectId, { name, properties })
+        entry.anytypeObjectId = objectId
+        // Ensure the object is actually in the collection (it may have been
+        // created but not yet visible in the view, or linked only by address).
+        if (!remoteById.has(objectId)) newObjectIds.push(objectId)
         updated++
         continue
       } catch (err) {
         if (err.status !== 404) throw err
-        debug('Anytype object missing, recreating:', entry.anytypeObjectId)
+        debug('Anytype object missing, recreating:', objectId)
+        entry.anytypeObjectId = null
       }
     }
 
