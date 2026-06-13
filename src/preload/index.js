@@ -31,6 +31,11 @@ contextBridge.exposeInMainWorld('api', {
   anytypeSyncBook: (book) => ipcRenderer.invoke('anytype:syncBook', book),
   anytypeListCollections: (spaceId) => ipcRenderer.invoke('anytype:listCollections', spaceId),
   anytypeImportBook: (opts) => ipcRenderer.invoke('anytype:importBook', opts),
+  onAnytypeSynced: (callback) => {
+    const handler = (_event, data) => callback(data)
+    ipcRenderer.on('anytype:synced', handler)
+    return () => ipcRenderer.removeListener('anytype:synced', handler)
+  },
 
   // Status
   getStatus: () => ipcRenderer.invoke('status:get'),

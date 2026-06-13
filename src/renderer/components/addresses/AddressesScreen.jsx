@@ -37,6 +37,16 @@ export default function AddressesScreen() {
     }
   }, [reload])
 
+  // Refresh the table when background sync changes the current book's local data
+  useEffect(() => {
+    const unsub = window.api.onAnytypeSynced((result) => {
+      if (result.book === current && (result.pulled > 0 || result.changed)) {
+        reload()
+      }
+    })
+    return unsub
+  }, [current, reload])
+
   // ESCAPE dismisses whichever inline prompt is open
   useEffect(() => {
     const onKeyDown = (e) => {

@@ -51,7 +51,7 @@ export default function BookSyncControl({ book, onPulled }) {
     try {
       const result = await window.api.anytypeSyncBook(book)
       setSyncStatus({ done: result })
-      if (result.pulled > 0 && onPulled) onPulled()
+      if ((result.pulled > 0 || result.changed) && onPulled) onPulled()
     } catch (err) {
       setSyncStatus({ error: err.message || 'Sync failed' })
     }

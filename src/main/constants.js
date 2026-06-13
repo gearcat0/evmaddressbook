@@ -28,8 +28,11 @@ export const IPC = {
   ANYTYPE_LIST_SPACES: 'anytype:listSpaces',
   ANYTYPE_SYNC_BOOK: 'anytype:syncBook',
   ANYTYPE_LIST_COLLECTIONS: 'anytype:listCollections',
-  ANYTYPE_IMPORT_BOOK: 'anytype:importBook'
+  ANYTYPE_IMPORT_BOOK: 'anytype:importBook',
+  ANYTYPE_SYNCED: 'anytype:synced'
 }
+
+export const ANYTYPE_POLL_INTERVAL_MS = 10000
 
 export const ETHERSCAN_V2_URL = 'https://api.etherscan.io/v2/api'
 export const ETHERSCAN_CHAINLIST_URL = 'https://api.etherscan.io/v2/chainlist'

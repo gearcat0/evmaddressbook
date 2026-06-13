@@ -48,19 +48,36 @@ async function ensureAddressType(spaceId, state) {
   return created.key
 }
 
-function buildProperties(entry, chainNameOf) {
-  const chains = Object.keys(entry.activeChains || {}).map(chainNameOf).join(', ')
+function chainsString(entry, chainNameOf) {
+  return Object.keys(entry.activeChains || {}).map(chainNameOf).join(', ')
+}
+
+function buildProperties(entry, chainsStr) {
   const props = [
     { key: 'evm_address', text: entry.address },
-    { key: 'evm_chains', text: chains }
+    { key: 'evm_chains', text: chainsStr }
   ]
   if (entry.lastScanned) props.push({ key: 'evm_last_scanned', date: entry.lastScanned })
   return props
 }
 
-function propText(obj, key) {
+// Compare dates at second granularity so re-serialization differences (e.g.
+// dropped milliseconds) don't look like a change and cause endless re-writes.
+function sameDate(a, b) {
+  if (!a && !b) return true
+  if (!a || !b) return false
+  const ta = Date.parse(a)
+  const tb = Date.parse(b)
+  if (isNaN(ta) || isNaN(tb)) return a === b
+  return Math.floor(ta / 1000) === Math.floor(tb / 1000)
+}
+
+function propValue(obj, key) {
   const p = (obj.properties || []).find(p => p.key === key)
-  return p ? (p.text || '') : ''
+  if (!p) return ''
+  if (p.text != null) return p.text
+  if (p.date != null) return p.date
+  return ''
 }
 
 // Read the address objects that belong to a collection.
@@ -69,21 +86,49 @@ async function fetchRemoteMembers(spaceId, collectionId) {
   if (views.length === 0) return []
   const objects = await anytypeClient.getListObjects(spaceId, collectionId, views[0].id)
   return objects
-    .map(o => ({ id: o.id, name: o.name || '', address: propText(o, 'evm_address') }))
+    .map(o => ({
+      id: o.id,
+      name: o.name || '',
+      address: propValue(o, 'evm_address'),
+      chains: propValue(o, 'evm_chains'),
+      lastScanned: propValue(o, 'evm_last_scanned')
+    }))
     .filter(m => m.address)
 }
 
 // Build a local address entry from a pulled Anytype object.
+// The Anytype object always needs a name, so when an entry has no description
+// we use the address as the object name. Interpret that back into "no
+// description" when reading.
+function remoteDescription(member, address) {
+  if (member.name && member.name.toLowerCase() !== address.toLowerCase()) return member.name
+  return ''
+}
+
 function remoteToEntry(member) {
   let address = member.address
   try { address = getAddress(member.address) } catch {}
+  const desc = remoteDescription(member, address)
   return {
     address,
-    description: member.name || '',
+    description: desc,
     activeChains: {},
     lastScanned: null,
-    anytypeObjectId: member.id
+    anytypeObjectId: member.id,
+    anytypeName: desc // baseline: the description as last reconciled with Anytype
   }
+}
+
+// Serialize syncBook calls per book so the manual button and the background
+// poller (or two quick clicks) can't run the same book concurrently and race
+// on loadAddresses/saveAddresses.
+const bookLocks = new Map()
+
+export function syncBook(book) {
+  const prev = bookLocks.get(book) || Promise.resolve()
+  const next = prev.then(() => doSyncBook(book), () => doSyncBook(book))
+  bookLocks.set(book, next.catch(() => {}))
+  return next
 }
 
 // Two-way sync of one address book with its mapped Anytype collection.
@@ -91,7 +136,11 @@ function remoteToEntry(member) {
 // addresses only in Anytype are pulled in; addresses only local are pushed up.
 // For entries present on both sides the local copy wins, but an empty local
 // description is filled from Anytype. Deletions are not propagated either way.
-export async function syncBook(book) {
+//
+// The sync is idempotent: when local and remote already agree it performs no
+// writes (no PATCH/POST, no disk save), so it is safe to run on a short poll
+// interval and our own writes never retrigger a sync.
+async function doSyncBook(book) {
   const settings = loadSettings()
   const mapping = (settings.anytypeSpaces || {})[book]
   if (!mapping || !mapping.id) {
@@ -103,7 +152,8 @@ export async function syncBook(book) {
   // separate from the renderer-managed space selection so the two can't clobber
   // each other. Reset it if the book was pointed at a different space.
   const syncStateAll = settings.anytypeSyncState || {}
-  let state = syncStateAll[book]
+  const prevState = syncStateAll[book]
+  let state = prevState
   if (!state || state.spaceId !== spaceId) state = { spaceId }
 
   const typeKey = await ensureAddressType(spaceId, state)
@@ -131,6 +181,8 @@ export async function syncBook(book) {
   const addresses = loadAddresses(book)
   const localByAddr = new Map(addresses.map(a => [a.address.toLowerCase(), a]))
 
+  let localChanged = false
+
   // PULL: add addresses that exist only in Anytype
   let pulled = 0
   const pulledAddrs = new Set()
@@ -141,6 +193,7 @@ export async function syncBook(book) {
       addresses.push(entry)
       localByAddr.set(lc, entry)
       pulledAddrs.add(entry.address.toLowerCase())
+      localChanged = true
       pulled++
     }
   }
@@ -154,25 +207,68 @@ export async function syncBook(book) {
     const lc = entry.address.toLowerCase()
     if (pulledAddrs.has(lc)) continue // just pulled; already identical to remote
 
-    // The matched member is only used to fill an empty local description and to
-    // link by address. We must NOT gate the update on it: the collection view is
-    // indexed asynchronously and can omit recently-added objects, so an entry
-    // with a known object id is updated directly by id.
+    // The matched member is used to reconcile the description, link by address,
+    // and decide whether an update is needed. We must NOT gate the update on it:
+    // the collection view is indexed asynchronously and can omit recently-added
+    // objects, so an entry with a known object id is updated directly by id.
     const member = entry.anytypeObjectId
       ? remoteById.get(entry.anytypeObjectId)
       : remoteByAddr.get(lc)
-    if (member && !entry.description && member.name) entry.description = member.name
+
+    if (member && !entry.anytypeObjectId) {
+      entry.anytypeObjectId = member.id
+      localChanged = true
+    }
+
+    // Reconcile the description (the only user-editable field) against a stored
+    // baseline so each instance only pushes its OWN edits and otherwise adopts
+    // edits made elsewhere — rather than always overwriting Anytype.
+    //   local edited   (desc != baseline)        -> push (local wins on conflict)
+    //   remote edited  (remoteDesc != baseline)  -> pull
+    //   neither                                  -> leave as-is
+    if (member) {
+      const remoteDesc = remoteDescription(member, entry.address)
+      const localDesc = entry.description || ''
+      // Migrate pre-baseline entries: seed from the local value so an existing
+      // divergence is treated as a remote edit (adopted) rather than pushed.
+      if (entry.anytypeName == null) entry.anytypeName = localDesc
+      const baseline = entry.anytypeName
+      const localChangedDesc = localDesc !== baseline
+      const remoteChangedDesc = remoteDesc !== baseline
+      if (!localChangedDesc && remoteChangedDesc) {
+        entry.description = remoteDesc
+        entry.anytypeName = remoteDesc
+        localChanged = true
+      }
+    }
 
     const objectId = entry.anytypeObjectId || (member && member.id) || null
+    const chainsStr = chainsString(entry, chainNameOf)
     const name = entry.description || entry.address
-    const properties = buildProperties(entry, chainNameOf)
+
+    // chains/lastScanned are local-derived scan data: always pushed, never pulled.
+    const inSync = member &&
+      member.name === name &&
+      member.chains === chainsStr &&
+      sameDate(member.lastScanned, entry.lastScanned)
+    if (inSync) {
+      if (entry.anytypeName !== (entry.description || '')) {
+        entry.anytypeName = entry.description || ''
+        localChanged = true
+      }
+      continue
+    }
+
+    const properties = buildProperties(entry, chainsStr)
 
     if (objectId) {
       try {
         await anytypeClient.updateObject(spaceId, objectId, { name, properties })
-        entry.anytypeObjectId = objectId
-        // Ensure the object is actually in the collection (it may have been
-        // created but not yet visible in the view, or linked only by address).
+        if (entry.anytypeName !== (entry.description || '')) {
+          entry.anytypeName = entry.description || ''
+          localChanged = true
+        }
+        // Re-add to the collection if it isn't a visible member (lag / address link).
         if (!remoteById.has(objectId)) newObjectIds.push(objectId)
         updated++
         continue
@@ -180,12 +276,15 @@ export async function syncBook(book) {
         if (err.status !== 404) throw err
         debug('Anytype object missing, recreating:', objectId)
         entry.anytypeObjectId = null
+        localChanged = true
       }
     }
 
     const obj = await anytypeClient.createObject(spaceId, { type_key: typeKey, name, properties })
     entry.anytypeObjectId = obj.id
+    entry.anytypeName = entry.description || ''
     newObjectIds.push(obj.id)
+    localChanged = true
     created++
   }
 
@@ -193,14 +292,19 @@ export async function syncBook(book) {
     await anytypeClient.addToList(spaceId, collectionId, newObjectIds)
   }
 
-  // Persist the object ids and the resolved type/collection for next time
-  saveAddresses(addresses, book)
-  syncStateAll[book] = { spaceId, collectionId, typeKey }
-  settings.anytypeSyncState = syncStateAll
-  saveSettings(settings)
+  // Persist only when something actually changed, so idle polls do no disk I/O.
+  if (localChanged) saveAddresses(addresses, book)
+  const stateChanged = !prevState || prevState.collectionId !== collectionId || prevState.typeKey !== typeKey
+  if (stateChanged) {
+    syncStateAll[book] = { spaceId, collectionId, typeKey }
+    settings.anytypeSyncState = syncStateAll
+    saveSettings(settings)
+  }
 
-  debug(`Synced book "${book}": ${created} created, ${updated} updated, ${pulled} pulled`)
-  return { book, spaceId, collectionId, created, updated, pulled, total: addresses.length }
+  if (created || updated || pulled) {
+    debug(`Synced book "${book}": ${created} created, ${updated} updated, ${pulled} pulled`)
+  }
+  return { book, spaceId, collectionId, created, updated, pulled, changed: localChanged, total: addresses.length }
 }
 
 // List the collections available in a space, for the import picker.
