@@ -1,12 +1,12 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { getAddress } from 'ethers'
 import { IPC, CHAINLIST_RPCS_URL, debug } from './constants'
-import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, deleteBook } from './data-store'
+import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, deleteBook, loadDeletions, saveDeletions } from './data-store'
 import { client } from './etherscan-client'
 import { scanAddress } from './chain-scanner'
 import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
 import { anytypeClient } from './anytype-client'
-import { syncBook, listSpaceCollections, importBook } from './anytype-sync'
+import { syncBook, listSpaceCollections, importBook, withBookLock } from './anytype-sync'
 
 async function fetchRpcsJson() {
   const resp = await fetch(CHAINLIST_RPCS_URL)
@@ -45,41 +45,62 @@ export function registerIpcHandlers() {
     return loadAddresses(book)
   })
 
+  // Address mutations are serialized per book with sync so the background poll
+  // can't race them (resurrect a just-deleted entry / lose an edit).
   ipcMain.handle(IPC.ADDRESSES_ADD, (_event, { address, description, book }) => {
     const checksummed = getAddress(address)
-    const addresses = loadAddresses(book)
-    if (addresses.some(a => a.address.toLowerCase() === checksummed.toLowerCase())) {
-      throw new Error('Address already exists')
-    }
-    const entry = {
-      address: checksummed,
-      description: description || '',
-      activeChains: {},
-      lastScanned: null
-    }
-    addresses.push(entry)
-    saveAddresses(addresses, book)
-    debug('Added address:', checksummed)
-    return entry
+    return withBookLock(book, () => {
+      const addresses = loadAddresses(book)
+      if (addresses.some(a => a.address.toLowerCase() === checksummed.toLowerCase())) {
+        throw new Error('Address already exists')
+      }
+      const entry = {
+        address: checksummed,
+        description: description || '',
+        activeChains: {},
+        lastScanned: null
+      }
+      addresses.push(entry)
+      saveAddresses(addresses, book)
+      debug('Added address:', checksummed)
+      return entry
+    })
   })
 
   ipcMain.handle(IPC.ADDRESSES_UPDATE, (_event, { address, description, book }) => {
-    const addresses = loadAddresses(book)
-    const idx = addresses.findIndex(a => a.address.toLowerCase() === address.toLowerCase())
-    if (idx === -1) throw new Error('Address not found')
-    if (description !== undefined) addresses[idx].description = description
-    saveAddresses(addresses, book)
-    debug('Updated address:', address)
-    return addresses[idx]
+    return withBookLock(book, () => {
+      const addresses = loadAddresses(book)
+      const idx = addresses.findIndex(a => a.address.toLowerCase() === address.toLowerCase())
+      if (idx === -1) throw new Error('Address not found')
+      if (description !== undefined) addresses[idx].description = description
+      saveAddresses(addresses, book)
+      debug('Updated address:', address)
+      return addresses[idx]
+    })
   })
 
   ipcMain.handle(IPC.ADDRESSES_DELETE, (_event, { address, book }) => {
-    const addresses = loadAddresses(book)
-    const filtered = addresses.filter(a => a.address.toLowerCase() !== address.toLowerCase())
-    if (filtered.length === addresses.length) throw new Error('Address not found')
-    saveAddresses(filtered, book)
-    debug('Deleted address:', address)
-    return true
+    return withBookLock(book, () => {
+      const addresses = loadAddresses(book)
+      const entry = addresses.find(a => a.address.toLowerCase() === address.toLowerCase())
+      if (!entry) throw new Error('Address not found')
+      saveAddresses(addresses.filter(a => a !== entry), book)
+
+      // If this book is synced and the entry existed in Anytype, tombstone its
+      // object so the next sync archives it remotely (deletion propagation).
+      const mapping = (loadSettings().anytypeSpaces || {})[book]
+      if (mapping && mapping.id && entry.anytypeObjectId) {
+        const deletions = loadDeletions()
+        const list = deletions[book] || []
+        if (!list.includes(entry.anytypeObjectId)) {
+          list.push(entry.anytypeObjectId)
+          deletions[book] = list
+          saveDeletions(deletions)
+        }
+      }
+      debug('Deleted address:', address)
+      return true
+    })
   })
 
   ipcMain.handle(IPC.ADDRESSES_SCAN, (_event, { address, book }) => {

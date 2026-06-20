@@ -153,3 +153,13 @@ export function saveSettings(settings) {
   saveJson('settings.json', settings)
   resetDataDirCache()
 }
+
+// Tombstones: Anytype object ids of locally-deleted addresses, pending remote
+// deletion (archival) on the next sync. Keyed by book name.
+export function loadDeletions() {
+  return loadJson('anytype-deletions.json', {})
+}
+
+export function saveDeletions(map) {
+  saveJson('anytype-deletions.json', map)
+}

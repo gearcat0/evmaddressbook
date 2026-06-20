@@ -81,6 +81,22 @@ class AnytypeClient {
     return data && data.object
   }
 
+  // Returns the object, or null if it no longer exists (404).
+  async getObject(spaceId, objectId) {
+    try {
+      const data = await this.request('GET', `/spaces/${spaceId}/objects/${objectId}`)
+      return (data && data.object) || null
+    } catch (err) {
+      if (err.status === 404) return null
+      throw err
+    }
+  }
+
+  // Deletes (archives) an object.
+  async deleteObject(spaceId, objectId) {
+    return this.request('DELETE', `/spaces/${spaceId}/objects/${objectId}`)
+  }
+
   async addToList(spaceId, listId, objectIds) {
     return this.request('POST', `/spaces/${spaceId}/lists/${listId}/objects`, { objects: objectIds })
   }

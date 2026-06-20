@@ -33,7 +33,7 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    console.log('1.2.1')
+    console.log('1.3.0')
     return true
   }
 
