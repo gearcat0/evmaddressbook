@@ -1,6 +1,6 @@
 import { getAddress } from 'ethers'
 import { anytypeClient } from './anytype-client'
-import { loadAddresses, saveAddresses, loadChains, loadSettings, saveSettings, createBook, loadDeletions, saveDeletions } from './data-store'
+import { loadAddresses, saveAddresses, loadChains, loadSettings, saveSettings, createBook, deleteBook, loadDeletions, saveDeletions, DEFAULT_BOOK } from './data-store'
 import { debug } from './constants'
 
 const TYPE_NAME = 'Address'
@@ -98,6 +98,57 @@ async function fetchRemoteMembers(spaceId, collectionId) {
   return objects.map(toMember).filter(m => m.address)
 }
 
+// Remove a book's Anytype sync state (mapping + sync state + tombstones).
+function purgeBookState(book) {
+  const settings = loadSettings()
+  let changed = false
+  if (settings.anytypeSpaces && settings.anytypeSpaces[book]) {
+    delete settings.anytypeSpaces[book]; changed = true
+  }
+  if (settings.anytypeSyncState && settings.anytypeSyncState[book]) {
+    delete settings.anytypeSyncState[book]; changed = true
+  }
+  if (changed) saveSettings(settings)
+  const deletions = loadDeletions()
+  if (deletions[book]) { delete deletions[book]; saveDeletions(deletions) }
+}
+
+// Archive a collection and its address objects in Anytype.
+async function archiveCollection(spaceId, collectionId) {
+  try {
+    const members = await fetchRemoteMembers(spaceId, collectionId)
+    for (const m of members) {
+      try { await anytypeClient.deleteObject(spaceId, m.id) }
+      catch (err) { if (err.status !== 404) debug('Failed to archive member', m.id, err.message) }
+    }
+  } catch (err) {
+    debug('Could not list members to archive:', err.message)
+  }
+  await anytypeClient.deleteObject(spaceId, collectionId)
+}
+
+// Delete an address book everywhere: archive its Anytype collection (best
+// effort) and remove the local book + sync state. Serialized with sync.
+export function deleteBookEverywhere(book) {
+  return withBookLock(book, async () => {
+    const settings = loadSettings()
+    const mapping = (settings.anytypeSpaces || {})[book]
+    const state = (settings.anytypeSyncState || {})[book]
+    if (mapping && mapping.id && state && state.collectionId) {
+      try {
+        await archiveCollection(mapping.id, state.collectionId)
+        debug('Archived Anytype collection for deleted book', book)
+      } catch (err) {
+        debug('Failed to archive Anytype collection for', book, err.message)
+        // Local deletion still proceeds — remote cleanup is best effort.
+      }
+    }
+    deleteBook(book) // local file (throws for Default / missing)
+    purgeBookState(book)
+    return true
+  })
+}
+
 // Build a local address entry from a pulled Anytype object.
 // The Anytype object always needs a name, so when an entry has no description
 // we use the address as the object name. Interpret that back into "no
@@ -164,6 +215,28 @@ async function doSyncBook(book) {
   const prevState = syncStateAll[book]
   let state = prevState
   if (!state || state.spaceId !== spaceId) state = { spaceId }
+
+  // Detect a book deleted on another instance: if our collection was archived
+  // (or removed) remotely, propagate the deletion locally. getObject is reliable
+  // (unlike the async collection view), so this won't false-positive on lag.
+  if (state.collectionId) {
+    const collection = await anytypeClient.getObject(spaceId, state.collectionId)
+    if (!collection || collection.archived) {
+      if (book === DEFAULT_BOOK) {
+        purgeBookState(book) // can't delete Default — just stop syncing it
+        debug('Anytype collection for Default was deleted; stopped syncing')
+      } else {
+        try { deleteBook(book) } catch {}
+        purgeBookState(book)
+        debug('Book deleted remotely, removed locally:', book)
+      }
+      return {
+        book, spaceId, bookDeleted: book !== DEFAULT_BOOK, unlinked: book === DEFAULT_BOOK,
+        created: 0, updated: 0, pulled: 0, deletedRemote: 0, deletedLocal: 0,
+        changed: true, total: 0
+      }
+    }
+  }
 
   let typeKey = await ensureAddressType(spaceId, state)
 

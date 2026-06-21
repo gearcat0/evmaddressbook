@@ -1,12 +1,12 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { getAddress } from 'ethers'
 import { IPC, CHAINLIST_RPCS_URL, debug } from './constants'
-import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, deleteBook, loadDeletions, saveDeletions } from './data-store'
+import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, loadDeletions, saveDeletions } from './data-store'
 import { client } from './etherscan-client'
 import { scanAddress } from './chain-scanner'
 import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
 import { anytypeClient } from './anytype-client'
-import { syncBook, listSpaceCollections, importBook, withBookLock } from './anytype-sync'
+import { syncBook, listSpaceCollections, importBook, withBookLock, deleteBookEverywhere } from './anytype-sync'
 
 async function fetchRpcsJson() {
   const resp = await fetch(CHAINLIST_RPCS_URL)
@@ -122,7 +122,7 @@ export function registerIpcHandlers() {
   })
 
   ipcMain.handle(IPC.BOOKS_DELETE, (_event, name) => {
-    return deleteBook(name)
+    return deleteBookEverywhere(name)
   })
 
   ipcMain.handle(IPC.CHAINS_LIST, () => {

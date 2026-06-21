@@ -37,15 +37,19 @@ export default function AddressesScreen() {
     }
   }, [reload])
 
-  // Refresh the table when background sync changes the current book's local data
+  // Refresh when background sync changes the current book or removes a book
   useEffect(() => {
     const unsub = window.api.onAnytypeSynced((result) => {
+      if (result.bookDeleted || result.unlinked) {
+        reloadBooks() // a book was deleted/unlinked elsewhere; refresh the list
+        return
+      }
       if (result.book === current && (result.pulled > 0 || result.changed)) {
         reload()
       }
     })
     return unsub
-  }, [current, reload])
+  }, [current, reload, reloadBooks])
 
   // ESCAPE dismisses whichever inline prompt is open
   useEffect(() => {
@@ -155,7 +159,7 @@ export default function AddressesScreen() {
         </button>
       </div>
 
-      <BookSyncControl book={current} onPulled={reload} />
+      <BookSyncControl book={current} onPulled={reload} onBookDeleted={reloadBooks} />
 
       {showImport && (
         <ImportBookPanel onCancel={closeBookPrompts} onImported={handleImported} />

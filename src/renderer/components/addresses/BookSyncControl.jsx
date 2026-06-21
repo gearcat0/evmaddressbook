@@ -3,7 +3,7 @@ import useSettings from '../../hooks/useSettings'
 
 // Per-book Anytype sync target. The mapping lives in settings under
 // `anytypeSpaces`, keyed by address book name: { [book]: { id, name } }.
-export default function BookSyncControl({ book, onPulled }) {
+export default function BookSyncControl({ book, onPulled, onBookDeleted }) {
   const { settings, update, reload } = useSettings()
   const [open, setOpen] = useState(false)
   const [spaces, setSpaces] = useState(null) // null = not loaded
@@ -51,7 +51,8 @@ export default function BookSyncControl({ book, onPulled }) {
     try {
       const result = await window.api.anytypeSyncBook(book)
       setSyncStatus({ done: result })
-      if ((result.pulled > 0 || result.changed) && onPulled) onPulled()
+      if ((result.bookDeleted || result.unlinked) && onBookDeleted) onBookDeleted()
+      else if ((result.pulled > 0 || result.changed) && onPulled) onPulled()
     } catch (err) {
       setSyncStatus({ error: err.message || 'Sync failed' })
     }
