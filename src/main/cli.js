@@ -17,6 +17,23 @@ function extractBook(args) {
   return { args: rest, book: name }
 }
 
+// Write a string to stdout, resolving once it has been fully flushed.
+//
+// console.log()/process.stdout.write() are asynchronous when stdout is a pipe
+// or file, and index.js calls process.exit() as soon as a CLI command returns.
+// process.exit() terminates the process before large async writes drain,
+// truncating the output at the pipe buffer boundary (~64KB). Resolving on the
+// write callback (fired after the data reaches the OS) lets the caller return a
+// promise so the exit waits for the flush to complete.
+function writeStdout(str) {
+  return new Promise((resolve) => process.stdout.write(str, () => resolve(true)))
+}
+
+// Pretty-print a value as JSON to stdout, flush-safe (see writeStdout).
+function printJson(value) {
+  return writeStdout(JSON.stringify(value, null, 2) + '\n')
+}
+
 export function handleCli(argv) {
   const rawArgs = argv.slice(app.isPackaged ? 1 : 2)
 
@@ -28,13 +45,11 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--help') || args.includes('-h')) {
-    printUsage()
-    return true
+    return writeStdout(usageText())
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    console.log('1.4.0')
-    return true
+    return writeStdout('1.4.1\n')
   }
 
   if (book !== null && !bookExists(book)) {
@@ -44,20 +59,15 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--addresses')) {
-    const addresses = loadAddresses(book)
-    console.log(JSON.stringify(addresses, null, 2))
-    return true
+    return printJson(loadAddresses(book))
   }
 
   if (args.includes('--chains')) {
-    const chains = loadChains()
-    console.log(JSON.stringify(chains, null, 2))
-    return true
+    return printJson(loadChains())
   }
 
   if (args.includes('--list-books')) {
-    console.log(JSON.stringify(listBooks(), null, 2))
-    return true
+    return printJson(listBooks())
   }
 
   if (args.includes('--rescan')) {
@@ -91,17 +101,15 @@ export function handleCli(argv) {
       process.exitCode = 1
       return true
     }
-    console.log(fs.readFileSync(abiPath, 'utf-8'))
-    return true
+    return writeStdout(fs.readFileSync(abiPath, 'utf-8') + '\n')
   }
 
   const knownFlags = ['--help', '-h', '--version', '-v', '--addresses', '--chains']
   const unknown = args.filter(a => !knownFlags.includes(a))
   if (unknown.length > 0) {
     console.error(`Unknown option: ${unknown[0]}`)
-    printUsage()
     process.exitCode = 1
-    return true
+    return writeStdout(usageText())
   }
 
   return false
@@ -128,7 +136,7 @@ async function runRescan(book) {
     results[addr] = await scanAddress(addr, sender, null, book)
   }
 
-  console.log(JSON.stringify(results, null, 2))
+  await printJson(results)
   return true
 }
 
@@ -156,12 +164,12 @@ async function runScan(address, chainId, book) {
   }
 
   const result = await scanAddress(address, sender, chainId ? String(chainId) : null, book)
-  console.log(JSON.stringify(result, null, 2))
+  await printJson(result)
   return true
 }
 
-function printUsage() {
-  console.log(`Usage: evmaddressbook [options]
+function usageText() {
+  return `Usage: evmaddressbook [options]
 
 Options:
   --rescan                    Re-scan all addresses in the address book
@@ -177,5 +185,6 @@ Options:
 Environment variables:
   EVMADDRESSBOOK_DATADIR    Override data directory
   ETHERSCAN_API_KEY         Override Etherscan API key
-  EVMADDRESSBOOKDEBUG=1     Enable debug logging`)
+  EVMADDRESSBOOKDEBUG=1     Enable debug logging
+`
 }
