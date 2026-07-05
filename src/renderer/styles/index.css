@@ -1,19 +1,24 @@
+/* Design tokens now come from the shared evm-ui design system (imported in
+   main.jsx). These aliases map the app's historical variable names onto evm-ui
+   tokens, so all existing styles adopt the unified near-black + teal look. New
+   UI should use evm-ui components / --evm-* tokens directly. */
 :root {
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --bg-tertiary: #0f3460;
-  --bg-input: #222244;
-  --text-primary: #e0e0e0;
-  --text-secondary: #a0a0b0;
-  --text-muted: #666680;
-  --accent: #e94560;
-  --accent-hover: #ff6b81;
-  --border: #2a2a4a;
-  --success: #4caf50;
-  --warning: #ff9800;
-  --error: #f44336;
-  --radius: 6px;
-  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --bg-primary: var(--evm-bg);
+  --bg-secondary: var(--evm-surface-1);
+  --bg-tertiary: var(--evm-surface-3);
+  --bg-input: var(--evm-surface-2);
+  --bg-hover: var(--evm-surface-2);
+  --text-primary: var(--evm-text-1);
+  --text-secondary: var(--evm-text-2);
+  --text-muted: var(--evm-text-3);
+  --accent: var(--evm-accent);
+  --accent-hover: var(--evm-accent-hover);
+  --border: var(--evm-border);
+  --success: var(--evm-success);
+  --warning: var(--evm-warning);
+  --error: var(--evm-danger);
+  --radius: var(--evm-radius-md);
+  --font-mono: var(--evm-font-mono);
 }
 
 * {
@@ -200,7 +205,7 @@ tr:last-child td {
 }
 
 tr:hover {
-  background: rgba(233, 69, 96, 0.05);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 /* Address mono styling */

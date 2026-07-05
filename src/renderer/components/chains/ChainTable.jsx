@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Button } from 'evm-ui'
 import useSortFilter from '../../hooks/useSortFilter'
 import ChainIcon from '../ChainIcon'
 
@@ -52,20 +53,16 @@ function RpcCell({ chain, onUpdateRpc }) {
           minWidth: 0
         }}
       />
-      <button
+      <Button
+        variant="secondary"
+        size="sm"
         onClick={handleFetch}
         disabled={fetching}
         title="Fetch RPC URL from chainlist.org"
-        style={{
-          padding: '2px 6px',
-          fontSize: 11,
-          whiteSpace: 'nowrap',
-          cursor: fetching ? 'wait' : 'pointer'
-        }}
-        className="btn btn-secondary"
+        style={{ whiteSpace: 'nowrap' }}
       >
         {fetching ? '...' : 'Fetch'}
-      </button>
+      </Button>
     </div>
   )
 }

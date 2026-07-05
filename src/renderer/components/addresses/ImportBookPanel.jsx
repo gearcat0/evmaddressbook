@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Button, Select, Input } from 'evm-ui'
 
 // Inline (non-modal) panel for creating a local address book from an existing
 // Anytype collection: pick a space → pick a collection → name the book → import.
@@ -72,16 +73,15 @@ export default function ImportBookPanel({ onCancel, onImported }) {
       <div className="form-row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div className="form-group" style={{ flex: 1, minWidth: 180 }}>
           <label>Space</label>
-          <select className="book-select" value={spaceId} onChange={handleSpaceChange} disabled={!spaces}>
+          <Select value={spaceId} onChange={handleSpaceChange} disabled={!spaces}>
             <option value="">{spaces ? 'Select a space…' : 'Loading…'}</option>
             {(spaces || []).map(s => <option key={s.id} value={s.id}>{s.name || s.id}</option>)}
-          </select>
+          </Select>
         </div>
 
         <div className="form-group" style={{ flex: 1, minWidth: 180 }}>
           <label>Collection</label>
-          <select
-            className="book-select"
+          <Select
             value={collectionId}
             onChange={handleCollectionChange}
             disabled={!collections || collections.length === 0}
@@ -90,13 +90,12 @@ export default function ImportBookPanel({ onCancel, onImported }) {
               {!spaceId ? 'Pick a space first' : !collections ? 'Loading…' : collections.length === 0 ? 'No collections' : 'Select a collection…'}
             </option>
             {(collections || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          </Select>
         </div>
 
         <div className="form-group" style={{ flex: 1, minWidth: 180 }}>
           <label>New address book name</label>
-          <input
-            type="text"
+          <Input
             value={bookName}
             onChange={(e) => setBookName(e.target.value)}
             placeholder="Address book name"
@@ -104,10 +103,10 @@ export default function ImportBookPanel({ onCancel, onImported }) {
         </div>
 
         <div className="form-group" style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" onClick={handleImport} disabled={!canImport}>
+          <Button variant="primary" onClick={handleImport} disabled={!canImport}>
             {busy ? 'Importing…' : 'Import'}
-          </button>
-          <button className="btn btn-secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+          </Button>
+          <Button variant="secondary" onClick={onCancel} disabled={busy}>Cancel</Button>
         </div>
       </div>
 

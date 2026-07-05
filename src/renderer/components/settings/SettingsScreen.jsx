@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Button, Input, EmptyState } from 'evm-ui'
 import useSettings from '../../hooks/useSettings'
 
 export default function SettingsScreen() {
@@ -24,7 +25,7 @@ export default function SettingsScreen() {
     setAnytypeKeyLoaded(true)
   }
 
-  if (loading) return <div className="empty-state"><p>Loading settings...</p></div>
+  if (loading) return <EmptyState title="Loading settings…" />
 
   const handleSaveApiKey = async () => {
     await update({ etherscanApiKey: apiKey })
@@ -68,9 +69,9 @@ export default function SettingsScreen() {
         <h3>Data Directory</h3>
         <div className="settings-row">
           <div className="data-dir-display">{settings.dataDir || 'Default'}</div>
-          <button className="btn btn-secondary" onClick={handleChangeDir}>
+          <Button variant="secondary" onClick={handleChangeDir}>
             Change
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -80,21 +81,18 @@ export default function SettingsScreen() {
           Get a free API key at etherscan.io. Required for chain activity scanning.
         </p>
         <div className="settings-row">
-          <input
+          <Input
             type={showKey ? 'text' : 'password'}
             value={apiKey}
             onChange={(e) => { setApiKey(e.target.value); setSaved(false) }}
             placeholder="Enter your Etherscan API key"
           />
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowKey(!showKey)}
-          >
+          <Button variant="secondary" onClick={() => setShowKey(!showKey)}>
             {showKey ? 'Hide' : 'Show'}
-          </button>
-          <button className="btn btn-primary" onClick={handleSaveApiKey}>
+          </Button>
+          <Button variant="primary" onClick={handleSaveApiKey}>
             {saved ? 'Saved!' : 'Save'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -106,28 +104,25 @@ export default function SettingsScreen() {
           http://localhost:31009.
         </p>
         <div className="settings-row">
-          <input
+          <Input
             type={showAnytypeKey ? 'text' : 'password'}
             value={anytypeKey}
             onChange={(e) => { setAnytypeKey(e.target.value); setAnytypeSaved(false) }}
             placeholder="Enter your Anytype API key"
           />
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowAnytypeKey(!showAnytypeKey)}
-          >
+          <Button variant="secondary" onClick={() => setShowAnytypeKey(!showAnytypeKey)}>
             {showAnytypeKey ? 'Hide' : 'Show'}
-          </button>
-          <button className="btn btn-primary" onClick={handleSaveAnytypeKey}>
+          </Button>
+          <Button variant="primary" onClick={handleSaveAnytypeKey}>
             {anytypeSaved ? 'Saved!' : 'Save'}
-          </button>
-          <button
-            className="btn btn-secondary"
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleTestAnytype}
             disabled={!anytypeKey || (anytypeStatus && anytypeStatus.testing)}
           >
             {anytypeStatus && anytypeStatus.testing ? 'Testing…' : 'Test connection'}
-          </button>
+          </Button>
         </div>
         {anytypeStatus && anytypeStatus.error && (
           <div className="form-error" style={{ marginTop: 10 }}>{anytypeStatus.error}</div>

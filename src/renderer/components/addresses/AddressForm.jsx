@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Field, Input, Button } from 'evm-ui'
 
 export default function AddressForm({ onSubmit, onCancel, initial }) {
   const [address, setAddress] = useState(initial?.address || '')
@@ -44,39 +45,41 @@ export default function AddressForm({ onSubmit, onCancel, initial }) {
     <form className="inline-form" onSubmit={handleSubmit}>
       <div className="form-row">
         {!isEdit && (
-          <div className="form-group" style={{ flex: 2 }}>
-            <label>Address</label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="0x..."
-              disabled={submitting}
-            />
+          <div style={{ flex: 2 }}>
+            <Field label="Address" error={error || undefined}>
+              <Input
+                mono
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="0x..."
+                disabled={submitting}
+                invalid={!!error}
+              />
+            </Field>
           </div>
         )}
-        <div className="form-group" style={{ flex: 1 }}>
-          <label>Description</label>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional description"
-            disabled={submitting}
-          />
+        <div style={{ flex: 1 }}>
+          <Field label="Description">
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional description"
+              disabled={submitting}
+            />
+          </Field>
         </div>
-        <div className="form-group" style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" type="submit" disabled={submitting}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button variant="primary" type="submit" disabled={submitting}>
             {submitting ? 'Saving...' : isEdit ? 'Update' : 'Add'}
-          </button>
+          </Button>
           {onCancel && (
-            <button className="btn btn-secondary" type="button" onClick={onCancel}>
+            <Button variant="secondary" type="button" onClick={onCancel}>
               Cancel
-            </button>
+            </Button>
           )}
         </div>
       </div>
-      {error && <div className="form-error">{error}</div>}
+      {isEdit && error && <div className="form-error">{error}</div>}
     </form>
   )
 }

@@ -1,16 +1,17 @@
 import React, { useState } from 'react'
+import { Button, Spinner } from 'evm-ui'
 import ChainBadges from './ChainBadges'
 import AddressForm from './AddressForm'
 
 function ScanIcon({ entry }) {
   if (!entry.lastScanned) {
-    return <span className="scan-icon scan-icon-none" title="Never scanned">{'\u25CB'}</span>
+    return <span className="scan-icon scan-icon-none" title="Never scanned">{'○'}</span>
   }
   if (entry.lastScanErrors && entry.lastScanErrors.length > 0) {
     const tooltip = `Last scan had ${entry.lastScanErrors.length} error(s):\n${entry.lastScanErrors.join('\n')}`
-    return <span className="scan-icon scan-icon-error" title={tooltip}>{'\u26A0'}</span>
+    return <span className="scan-icon scan-icon-error" title={tooltip}>{'⚠'}</span>
   }
-  return <span className="scan-icon scan-icon-ok" title="Last scan completed successfully">{'\u2713'}</span>
+  return <span className="scan-icon scan-icon-ok" title="Last scan completed successfully">{'✓'}</span>
 }
 
 export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, scanState }) {
@@ -47,7 +48,7 @@ export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, 
         {isScanning ? (
           <div className="scan-progress-wrapper">
             <div className="scan-progress">
-              <div className="spinner" />
+              <Spinner size={14} />
               <span>
                 {scanState.phase === 'discovery'
                   ? `Discovering ${scanState.chainName || '...'} (${scanState.current}/${scanState.total})`
@@ -62,26 +63,21 @@ export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, 
       </td>
       <td>
         <div className="row-actions">
-          <button
-            className="btn btn-secondary btn-small"
+          <Button
+            variant="secondary"
+            size="sm"
             style={{ minWidth: 44 }}
             onClick={() => onScan(entry.address)}
             disabled={isScanning}
           >
-            {isScanning ? '\u2026' : <><ScanIcon entry={entry} /> Scan</>}
-          </button>
-          <button
-            className="btn btn-secondary btn-small"
-            onClick={() => setEditing(true)}
-          >
+            {isScanning ? '…' : <><ScanIcon entry={entry} /> Scan</>}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
             Edit
-          </button>
-          <button
-            className="btn btn-danger btn-small"
-            onClick={() => onDelete(entry.address)}
-          >
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => onDelete(entry.address)}>
             Delete
-          </button>
+          </Button>
         </div>
       </td>
     </tr>

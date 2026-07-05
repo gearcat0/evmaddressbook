@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react'
+import { Button, EmptyState } from 'evm-ui'
 import useChains from '../../hooks/useChains'
 import ChainTable from './ChainTable'
 
@@ -22,32 +23,22 @@ export default function ChainsScreen() {
     setChains(updated)
   }, [setChains])
 
-  if (loading) return <div className="empty-state"><p>Loading chains...</p></div>
+  if (loading) return <EmptyState title="Loading chains…" />
 
   return (
     <div>
       <div className="screen-header">
         <h2>Chains ({chains.length})</h2>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="btn btn-secondary"
-            onClick={() => handleSetTestnetsEnabled(true)}
-          >
+          <Button variant="secondary" onClick={() => handleSetTestnetsEnabled(true)}>
             Enable Testnets
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => handleSetTestnetsEnabled(false)}
-          >
+          </Button>
+          <Button variant="secondary" onClick={() => handleSetTestnetsEnabled(false)}>
             Disable Testnets
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={refresh}
-            disabled={refreshing}
-          >
+          </Button>
+          <Button variant="secondary" onClick={refresh} disabled={refreshing}>
             {refreshing ? 'Refreshing...' : 'Refresh from Etherscan'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -58,10 +49,10 @@ export default function ChainsScreen() {
       )}
 
       {chains.length === 0 ? (
-        <div className="empty-state">
-          <h3>No chains loaded</h3>
-          <p>Click "Refresh from Etherscan" to fetch the chain list.</p>
-        </div>
+        <EmptyState
+          title="No chains loaded"
+          description='Click "Refresh from Etherscan" to fetch the chain list.'
+        />
       ) : (
         <ChainTable chains={chains} onUpdateRpc={handleUpdateRpc} onToggleEnabled={handleToggleEnabled} />
       )}

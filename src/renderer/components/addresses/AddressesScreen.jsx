@@ -3,6 +3,7 @@ import useAddresses from '../../hooks/useAddresses'
 import useBooks from '../../hooks/useBooks'
 import useChains from '../../hooks/useChains'
 import useSettings from '../../hooks/useSettings'
+import { Button, EmptyState, Field, Input } from 'evm-ui'
 import AddressForm from './AddressForm'
 import AddressTable from './AddressTable'
 import BookSyncControl from './BookSyncControl'
@@ -131,32 +132,35 @@ export default function AddressesScreen() {
           <select className="book-select" value={current} onChange={handleSelectBook}>
             {books.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
-          <button
-            className="btn btn-secondary btn-small"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => { closeBookPrompts(); setNewBookName('') }}
           >
             New Book
-          </button>
+          </Button>
           {anytypeReady && (
-            <button
-              className="btn btn-secondary btn-small"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => { closeBookPrompts(); setShowImport(true) }}
             >
               Import from Anytype
-            </button>
+            </Button>
           )}
-          <button
-            className="btn btn-danger btn-small"
+          <Button
+            variant="danger"
+            size="sm"
             disabled={current === DEFAULT_BOOK}
             title={current === DEFAULT_BOOK ? 'The Default address book cannot be deleted' : ''}
             onClick={() => { closeBookPrompts(); setConfirmDelete(true) }}
           >
             Delete Book
-          </button>
+          </Button>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+        <Button variant="primary" onClick={() => setShowForm(!showForm)}>
           {showForm ? 'Cancel' : 'Add Address'}
-        </button>
+        </Button>
       </div>
 
       <BookSyncControl book={current} onPulled={reload} onBookDeleted={reloadBooks} />
@@ -168,20 +172,20 @@ export default function AddressesScreen() {
       {newBookName !== null && (
         <div className="inline-form">
           <div className="form-row" style={{ alignItems: 'flex-end' }}>
-            <div className="form-group" style={{ flex: 1 }}>
-              <label>New address book name</label>
-              <input
-                type="text"
-                autoFocus
-                value={newBookName}
-                onChange={(e) => setNewBookName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateBook() }}
-                placeholder="e.g. Work, Cold Storage"
-              />
+            <div style={{ flex: 1 }}>
+              <Field label="New address book name">
+                <Input
+                  autoFocus
+                  value={newBookName}
+                  onChange={(e) => setNewBookName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateBook() }}
+                  placeholder="e.g. Work, Cold Storage"
+                />
+              </Field>
             </div>
-            <div className="form-group" style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary" onClick={handleCreateBook}>Create</button>
-              <button className="btn btn-secondary" onClick={closeBookPrompts}>Cancel</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="primary" onClick={handleCreateBook}>Create</Button>
+              <Button variant="secondary" onClick={closeBookPrompts}>Cancel</Button>
             </div>
           </div>
           {bookError && <div className="form-error">{bookError}</div>}
@@ -195,8 +199,8 @@ export default function AddressesScreen() {
             of its addresses and <strong>cannot be undone</strong>.
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-danger" onClick={handleDeleteBook}>Delete permanently</button>
-            <button className="btn btn-secondary" onClick={closeBookPrompts}>Cancel</button>
+            <Button variant="danger" onClick={handleDeleteBook}>Delete permanently</Button>
+            <Button variant="secondary" onClick={closeBookPrompts}>Cancel</Button>
           </div>
           {bookError && <div className="form-error">{bookError}</div>}
         </div>
@@ -216,12 +220,12 @@ export default function AddressesScreen() {
       )}
 
       {loading ? (
-        <div className="empty-state"><p>Loading addresses...</p></div>
+        <EmptyState title="Loading addresses…" />
       ) : addresses.length === 0 ? (
-        <div className="empty-state">
-          <h3>No addresses yet</h3>
-          <p>Click "Add Address" to add your first EVM address.</p>
-        </div>
+        <EmptyState
+          title="No addresses yet"
+          description='Click "Add Address" to add your first EVM address.'
+        />
       ) : (
         <AddressTable
           addresses={addresses}

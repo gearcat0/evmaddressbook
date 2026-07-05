@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Button, Select } from 'evm-ui'
 import useSettings from '../../hooks/useSettings'
 
 // Per-book Anytype sync target. The mapping lives in settings under
@@ -74,21 +75,22 @@ export default function BookSyncControl({ book, onPulled, onBookDeleted }) {
             : <span style={{ color: 'var(--text-muted)' }}>off</span>}
         </span>
         {mapping && (
-          <button
-            className="btn btn-primary btn-small"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleSyncNow}
             disabled={syncStatus && syncStatus.syncing}
           >
             {syncStatus && syncStatus.syncing ? 'Syncing…' : 'Sync now'}
-          </button>
+          </Button>
         )}
-        <button className="btn btn-secondary btn-small" onClick={toggleOpen}>
+        <Button variant="secondary" size="sm" onClick={toggleOpen}>
           {open ? 'Close' : mapping ? 'Change' : 'Set up sync'}
-        </button>
+        </Button>
         {mapping && (
-          <button className="btn btn-danger btn-small" onClick={handleStop}>
+          <Button variant="danger" size="sm" onClick={handleStop}>
             Stop syncing
-          </button>
+          </Button>
         )}
       </div>
 
@@ -113,25 +115,21 @@ export default function BookSyncControl({ book, onPulled, onBookDeleted }) {
               <div className="form-row" style={{ alignItems: 'flex-end' }}>
                 <div className="form-group" style={{ flex: 1 }}>
                   <label>Sync “{book}” to space</label>
-                  <select
-                    className="book-select"
-                    value={mapping ? mapping.id : ''}
-                    onChange={handleSelect}
-                  >
+                  <Select value={mapping ? mapping.id : ''} onChange={handleSelect}>
                     <option value="">Select a space…</option>
                     {spaces.map(s => (
                       <option key={s.id} value={s.id}>{s.name || s.id}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
-                <button className="btn btn-secondary" onClick={loadSpaces}>Reload</button>
+                <Button variant="secondary" onClick={loadSpaces}>Reload</Button>
               </div>
             )
           )}
           {status && status.error && (
-            <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={loadSpaces}>
+            <Button variant="secondary" style={{ marginTop: 8 }} onClick={loadSpaces}>
               Retry
-            </button>
+            </Button>
           )}
         </div>
       )}

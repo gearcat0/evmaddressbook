@@ -20,14 +20,23 @@
       "output": "release"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Utility"
     },
     "mac": {
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     }
   },
   "keywords": [],
@@ -40,6 +49,7 @@
     "@vitejs/plugin-react": "^5.1.4",
     "electron-vite": "^5.0.0",
     "ethers": "^6.16.0",
+    "evm-ui": "file:../evm-ui",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "vite": "^7.3.1"
@@ -48,5 +58,9 @@
     "electron": "^40.6.1",
     "electron-builder": "^26.8.1",
     "sharp": "^0.34.5"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.27.3": true
   }
 }
