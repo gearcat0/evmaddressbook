@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { getDefaultDataDir, debug } from './constants'
+import { BUILTIN_CHAINS } from './builtin-chains'
 
 let cachedDataDir = null
 
@@ -137,8 +138,28 @@ export function saveAddresses(addresses, book) {
   saveJson(bookFileName(book), addresses)
 }
 
+// Appends any missing built-in non-EVM chains to an existing chain list.
+// An empty/missing chains.json is left alone so the first-run "press Refresh"
+// flow still populates everything at once (the refresh merges builtins too).
+export function mergeBuiltinChains(chains) {
+  const present = new Set(chains.map(c => String(c.chainid)))
+  let added = false
+  for (const builtin of BUILTIN_CHAINS) {
+    if (!present.has(builtin.chainid)) {
+      chains.push({ ...builtin })
+      added = true
+    }
+  }
+  return added
+}
+
 export function loadChains() {
-  return loadJson('chains.json', [])
+  const chains = loadJson('chains.json', [])
+  if (chains.length > 0 && mergeBuiltinChains(chains)) {
+    saveJson('chains.json', chains)
+    debug('Seeded built-in non-EVM chains')
+  }
+  return chains
 }
 
 export function saveChains(chains) {

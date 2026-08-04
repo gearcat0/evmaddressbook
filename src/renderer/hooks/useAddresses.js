@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { addressKey } from '../../shared/address-validator'
 
 export default function useAddresses(book) {
   const [addresses, setAddresses] = useState([])
@@ -29,7 +30,7 @@ export default function useAddresses(book) {
   const update = useCallback(async (address, description) => {
     const entry = await window.api.updateAddress({ address, description, book })
     setAddresses(prev => prev.map(a =>
-      a.address.toLowerCase() === address.toLowerCase() ? entry : a
+      addressKey(a.address) === addressKey(address) ? entry : a
     ))
     return entry
   }, [book])
@@ -37,7 +38,7 @@ export default function useAddresses(book) {
   const remove = useCallback(async (address) => {
     await window.api.deleteAddress({ address, book })
     setAddresses(prev => prev.filter(a =>
-      a.address.toLowerCase() !== address.toLowerCase()
+      addressKey(a.address) !== addressKey(address)
     ))
   }, [book])
 

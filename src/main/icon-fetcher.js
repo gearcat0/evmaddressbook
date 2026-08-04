@@ -160,6 +160,30 @@ export function generateCheckerboardPng(letter) {
   ])
 }
 
+// Brand-colored icons for the built-in non-EVM chains (never in chainlist data).
+function builtinIconSvg(letter, color) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
+    `<circle cx="16" cy="16" r="16" fill="${color}"/>` +
+    `<text x="16" y="22" font-family="Arial, sans-serif" font-size="17" font-weight="bold" fill="#fff" text-anchor="middle">${letter}</text>` +
+    `</svg>`
+}
+
+const BUILTIN_ICON_SVGS = {
+  bitcoin: builtinIconSvg('₿', '#f7931a'),
+  solana: builtinIconSvg('S', '#9945ff'),
+  tron: builtinIconSvg('T', '#eb0029')
+}
+
+function writeBuiltinIcons(iconsDir) {
+  for (const [chainId, svg] of Object.entries(BUILTIN_ICON_SVGS)) {
+    const dest = path.join(iconsDir, `${chainId}.svg`)
+    if (!fs.existsSync(dest)) {
+      fs.writeFileSync(dest, svg)
+      debug(`Wrote built-in icon for ${chainId}`)
+    }
+  }
+}
+
 async function fetchJson(url) {
   const response = await fetch(url)
   if (!response.ok) return null
@@ -202,6 +226,8 @@ export async function fetchAndStoreIcons(chains) {
     fs.writeFileSync(defaultPath, generateCheckerboardPng())
     debug('Generated default checkerboard icon')
   }
+
+  writeBuiltinIcons(iconsDir)
 
   // Fetch rpcs.json to get chainId → icon name mapping
   let rpcsData

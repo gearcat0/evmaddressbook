@@ -38,6 +38,16 @@ export const ETHERSCAN_V2_URL = 'https://api.etherscan.io/v2/api'
 export const ETHERSCAN_CHAINLIST_URL = 'https://api.etherscan.io/v2/chainlist'
 export const RATE_LIMIT_MS = 334
 
+export const ROUTESCAN_API_URL_BASE = 'https://api.routescan.io/v2/network'
+export const SOURCIFY_API_URL = 'https://sourcify.dev/server/v2'
+export const ROUTESCAN_RATE_LIMIT_MS = 500
+export const BLOCKSCOUT_RATE_LIMIT_MS = 350
+export const SOURCIFY_RATE_LIMIT_MS = 250
+export const RPC_RATE_LIMIT_MS = 100
+export const BITCOIN_RATE_LIMIT_MS = 1000
+export const SOLANA_RATE_LIMIT_MS = 1000
+export const TRON_RATE_LIMIT_MS = 500
+
 export const ANYTYPE_API_URL = 'http://127.0.0.1:31009/v1'
 export const ANYTYPE_API_VERSION = '2025-11-08'
 

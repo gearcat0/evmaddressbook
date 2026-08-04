@@ -49,7 +49,7 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    return writeStdout('1.4.1\n')
+    return writeStdout('1.5.0\n')
   }
 
   if (book !== null && !bookExists(book)) {
@@ -105,7 +105,12 @@ export function handleCli(argv) {
   }
 
   const knownFlags = ['--help', '-h', '--version', '-v', '--addresses', '--chains']
-  const unknown = args.filter(a => !knownFlags.includes(a))
+  // Electron/Chromium runtime switches (--no-sandbox, --remote-debugging-port,
+  // --inspect, ...) and positional paths reach process.argv when the app is
+  // launched by tooling; they are not CLI commands and must not error.
+  const isRuntimeSwitch = a => !a.startsWith('--') ||
+    /^--(no-sandbox|disable-|enable-|remote-debugging|inspect|force-|log-|user-data-dir|ozone)/.test(a)
+  const unknown = args.filter(a => !knownFlags.includes(a) && !isRuntimeSwitch(a))
   if (unknown.length > 0) {
     console.error(`Unknown option: ${unknown[0]}`)
     process.exitCode = 1
@@ -174,7 +179,9 @@ function usageText() {
 Options:
   --rescan                    Re-scan all addresses in the address book
   --scan <address> [chainId]  Scan address for chain activity and exit
-  --abi <address> <chainId>   Print contract ABI as JSON and exit
+                              (chainId may be numeric or bitcoin|solana|tron;
+                              EVM, Bitcoin, Solana, and Tron addresses supported)
+  --abi <address> <chainId>   Print contract ABI as JSON and exit (EVM chains only)
   --addresses                 Print all addresses as JSON and exit
   --chains                    Print all chains as JSON and exit
   --list-books                Print all address book names as JSON and exit
@@ -185,6 +192,8 @@ Options:
 Environment variables:
   EVMADDRESSBOOK_DATADIR    Override data directory
   ETHERSCAN_API_KEY         Override Etherscan API key
+  ROUTESCAN_API_KEY         Override Routescan API key (optional fallback provider)
+  TRONGRID_API_KEY          Override TronGrid API key (Tron scanning)
   EVMADDRESSBOOKDEBUG=1     Enable debug logging
 `
 }

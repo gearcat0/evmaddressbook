@@ -1,4 +1,4 @@
-import { getAddress } from 'ethers'
+import { normalizeAddress, addressKey } from '../shared/address-validator'
 import { anytypeClient } from './anytype-client'
 import { loadAddresses, saveAddresses, loadChains, loadSettings, saveSettings, createBook, deleteBook, loadDeletions, saveDeletions, DEFAULT_BOOK } from './data-store'
 import { debug } from './constants'
@@ -154,13 +154,13 @@ export function deleteBookEverywhere(book) {
 // we use the address as the object name. Interpret that back into "no
 // description" when reading.
 function remoteDescription(member, address) {
-  if (member.name && member.name.toLowerCase() !== address.toLowerCase()) return member.name
+  if (member.name && addressKey(member.name) !== addressKey(address)) return member.name
   return ''
 }
 
 function remoteToEntry(member) {
   let address = member.address
-  try { address = getAddress(member.address) } catch {}
+  try { address = normalizeAddress(member.address).address } catch {}
   const desc = remoteDescription(member, address)
   return {
     address,
@@ -296,11 +296,11 @@ async function doSyncBook(book) {
   // archived) one is never pulled or reconciled back in.
   const remoteMembers = (await fetchRemoteMembers(spaceId, collectionId))
     .filter(m => !tombSet.has(m.id))
-  const remoteByAddr = new Map(remoteMembers.map(m => [m.address.toLowerCase(), m]))
+  const remoteByAddr = new Map(remoteMembers.map(m => [addressKey(m.address), m]))
   const remoteById = new Map(remoteMembers.map(m => [m.id, m]))
 
   const addresses = loadAddresses(book)
-  const localByAddr = new Map(addresses.map(a => [a.address.toLowerCase(), a]))
+  const localByAddr = new Map(addresses.map(a => [addressKey(a.address), a]))
 
   let localChanged = false
 
@@ -308,12 +308,12 @@ async function doSyncBook(book) {
   let pulled = 0
   const pulledAddrs = new Set()
   for (const m of remoteMembers) {
-    const lc = m.address.toLowerCase()
-    if (!localByAddr.has(lc)) {
+    const key = addressKey(m.address)
+    if (!localByAddr.has(key)) {
       const entry = remoteToEntry(m)
       addresses.push(entry)
-      localByAddr.set(lc, entry)
-      pulledAddrs.add(entry.address.toLowerCase())
+      localByAddr.set(key, entry)
+      pulledAddrs.add(addressKey(entry.address))
       localChanged = true
       pulled++
     }
@@ -327,14 +327,14 @@ async function doSyncBook(book) {
   const toDelete = new Set()
 
   for (const entry of addresses) {
-    const lc = entry.address.toLowerCase()
-    if (pulledAddrs.has(lc)) continue // just pulled; already identical to remote
+    const key = addressKey(entry.address)
+    if (pulledAddrs.has(key)) continue // just pulled; already identical to remote
 
     // The matched member is used to reconcile the description, link by address,
     // and decide whether an update is needed.
     let member = entry.anytypeObjectId
       ? remoteById.get(entry.anytypeObjectId)
-      : remoteByAddr.get(lc)
+      : remoteByAddr.get(key)
 
     // A previously-synced entry that isn't a current collection member was
     // either deleted remotely or just isn't indexed yet (the collection view is

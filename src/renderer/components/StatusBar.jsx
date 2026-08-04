@@ -4,6 +4,7 @@ export default function StatusBar() {
   const [zoom, setZoom] = useState(100)
   const [apiCalls, setApiCalls] = useState(0)
   const [apiErrors, setApiErrors] = useState(0)
+  const [perProvider, setPerProvider] = useState({})
 
   const refreshStatus = useCallback(async () => {
     const [zoomFactor, status] = await Promise.all([
@@ -13,6 +14,7 @@ export default function StatusBar() {
     setZoom(Math.round(zoomFactor * 100))
     setApiCalls(status.apiCallCount)
     setApiErrors(status.apiErrorCount)
+    setPerProvider(status.providers || {})
   }, [])
 
   useEffect(() => {
@@ -27,13 +29,18 @@ export default function StatusBar() {
     setZoom(Math.round(newFactor * 100))
   }
 
+  const providerTooltip = Object.entries(perProvider)
+    .filter(([, s]) => s.calls > 0 || s.errors > 0)
+    .map(([name, s]) => `${name}: ${s.calls} calls / ${s.errors} errors`)
+    .join('\n')
+
   return (
     <div className="status-bar">
-      <div className="status-item">
+      <div className="status-item" title={providerTooltip || undefined}>
         <span className="status-label">API Calls:</span>
         <span className="status-value">{apiCalls}</span>
       </div>
-      <div className="status-item">
+      <div className="status-item" title={providerTooltip || undefined}>
         <span className="status-label">API Errors:</span>
         <span className={`status-value${apiErrors > 0 ? ' status-error' : ''}`}>{apiErrors}</span>
       </div>

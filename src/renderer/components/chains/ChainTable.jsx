@@ -33,6 +33,9 @@ function RpcCell({ chain, onUpdateRpc }) {
     }
   }
 
+  // chainlist.org only knows EVM chains; non-EVM RPC URLs are hand-edited.
+  const canFetch = (chain.family || 'evm') === 'evm'
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <input
@@ -53,16 +56,18 @@ function RpcCell({ chain, onUpdateRpc }) {
           minWidth: 0
         }}
       />
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={handleFetch}
-        disabled={fetching}
-        title="Fetch RPC URL from chainlist.org"
-        style={{ whiteSpace: 'nowrap' }}
-      >
-        {fetching ? '...' : 'Fetch'}
-      </Button>
+      {canFetch && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleFetch}
+          disabled={fetching}
+          title="Fetch RPC URL from chainlist.org"
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {fetching ? '...' : 'Fetch'}
+        </Button>
+      )}
     </div>
   )
 }
@@ -94,6 +99,9 @@ export default function ChainTable({ chains, onUpdateRpc, onToggleEnabled }) {
               <th onClick={() => toggleSort('chainname')}>
                 Name<span className="sort-indicator">{sortIndicator('chainname')}</span>
               </th>
+              <th onClick={() => toggleSort('family')}>
+                Family<span className="sort-indicator">{sortIndicator('family')}</span>
+              </th>
               <th onClick={() => toggleSort('blockexplorer')}>
                 Block Explorer<span className="sort-indicator">{sortIndicator('blockexplorer')}</span>
               </th>
@@ -120,6 +128,7 @@ export default function ChainTable({ chains, onUpdateRpc, onToggleEnabled }) {
                     {chain.chainname}
                   </div>
                 </td>
+                <td style={{ color: 'var(--text-secondary)' }}>{chain.family || 'evm'}</td>
                 <td>
                   {chain.blockexplorer ? (
                     <span className="address-text" style={{ color: 'var(--text-secondary)' }}>

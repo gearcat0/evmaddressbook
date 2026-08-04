@@ -1,23 +1,31 @@
-import { client } from './etherscan-client'
+import { providers, getFamilyProvider } from './providers/provider-registry'
 import { loadChains, loadAddresses, saveAddresses } from './data-store'
 import { resolveAddressType } from './address-type-resolver'
+import { detectFamily, addressKey } from '../shared/address-validator'
 import { debug } from './constants'
 
 export async function scanAddress(address, sender, filterChainId = null, book = null) {
-  let chains = loadChains().filter(c => c.enabled !== false)
+  const family = detectFamily(address)
+  if (!family) {
+    throw new Error(`Not a valid EVM, Bitcoin, Solana, or Tron address: ${address}`)
+  }
+
+  // An address only exists on chains of its own family.
+  let chains = loadChains().filter(c => c.enabled !== false && (c.family || 'evm') === family)
   if (filterChainId) {
     chains = chains.filter(c => String(c.chainid) === filterChainId)
   }
+  const familyProvider = getFamilyProvider(family)
   const activeChains = {}
   const scanErrors = []
   const total = chains.length
 
-  debug(`Starting scan of ${address} across ${total} chains`)
+  debug(`Starting scan of ${address} (${family}) across ${total} chains`)
 
   // Phase 1: Scanning for chain activity
   for (let i = 0; i < chains.length; i++) {
     const chain = chains[i]
-    const chainId = parseInt(chain.chainid, 10)
+    const chainId = String(chain.chainid)
 
     sender('scan:progress', {
       address,
@@ -29,10 +37,18 @@ export async function scanAddress(address, sender, filterChainId = null, book = 
     })
 
     try {
-      const active = await client.checkActivity(chainId, address)
-      if (active) {
-        activeChains[String(chainId)] = { addressType: null }
-        debug(`Activity found on chain ${chainId} (${chain.chainname})`)
+      if (family === 'evm') {
+        const active = await providers.checkActivity(chainId, address)
+        if (active) {
+          activeChains[chainId] = { addressType: null }
+          debug(`Activity found on chain ${chainId} (${chain.chainname})`)
+        }
+      } else {
+        const { active, typeInfo } = await familyProvider.checkActivity(chain, address)
+        if (active) {
+          activeChains[chainId] = typeInfo || { addressType: null }
+          debug(`Activity found on chain ${chainId} (${chain.chainname})`)
+        }
       }
     } catch (err) {
       scanErrors.push(`${chain.chainname}: ${err.message}`)
@@ -49,17 +65,22 @@ export async function scanAddress(address, sender, filterChainId = null, book = 
     const chain = chains.find(c => String(c.chainid) === chainId)
     const chainName = chain ? chain.chainname : `Chain ${chainId}`
 
+    // Some family providers (Bitcoin) deliver the full type info in phase 1.
+    if (family !== 'evm' && activeChains[chainId].addressType) continue
+
     sender('scan:progress', {
       address,
       phase: 'discovery',
       current: i + 1,
       total: discoveryTotal,
       chainName,
-      chainId: parseInt(chainId, 10)
+      chainId
     })
 
     try {
-      const { typeInfo, errors } = await resolveAddressType(chainId, address)
+      const { typeInfo, errors } = family === 'evm'
+        ? await resolveAddressType(chainId, address)
+        : await familyProvider.resolveType(chain, address)
       activeChains[chainId] = typeInfo
       if (errors.length > 0) {
         scanErrors.push(...errors)
@@ -72,7 +93,7 @@ export async function scanAddress(address, sender, filterChainId = null, book = 
   }
 
   const addresses = loadAddresses(book)
-  const idx = addresses.findIndex(a => a.address.toLowerCase() === address.toLowerCase())
+  const idx = addresses.findIndex(a => addressKey(a.address) === addressKey(address))
   if (idx !== -1) {
     addresses[idx].activeChains = activeChains
     addresses[idx].lastScanned = new Date().toISOString()

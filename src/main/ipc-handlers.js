@@ -1,8 +1,8 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
-import { getAddress } from 'ethers'
 import { IPC, CHAINLIST_RPCS_URL, debug } from './constants'
-import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, loadDeletions, saveDeletions } from './data-store'
-import { client } from './etherscan-client'
+import { normalizeAddress, addressKey } from '../shared/address-validator'
+import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, loadDeletions, saveDeletions, mergeBuiltinChains } from './data-store'
+import { providers, fetchChainlist } from './providers/provider-registry'
 import { scanAddress } from './chain-scanner'
 import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
 import { anytypeClient } from './anytype-client'
@@ -48,21 +48,22 @@ export function registerIpcHandlers() {
   // Address mutations are serialized per book with sync so the background poll
   // can't race them (resurrect a just-deleted entry / lose an edit).
   ipcMain.handle(IPC.ADDRESSES_ADD, (_event, { address, description, book }) => {
-    const checksummed = getAddress(address)
+    const { address: canonical, family } = normalizeAddress(address)
     return withBookLock(book, () => {
       const addresses = loadAddresses(book)
-      if (addresses.some(a => a.address.toLowerCase() === checksummed.toLowerCase())) {
+      if (addresses.some(a => addressKey(a.address) === addressKey(canonical))) {
         throw new Error('Address already exists')
       }
       const entry = {
-        address: checksummed,
+        address: canonical,
+        family,
         description: description || '',
         activeChains: {},
         lastScanned: null
       }
       addresses.push(entry)
       saveAddresses(addresses, book)
-      debug('Added address:', checksummed)
+      debug('Added address:', canonical)
       return entry
     })
   })
@@ -70,7 +71,7 @@ export function registerIpcHandlers() {
   ipcMain.handle(IPC.ADDRESSES_UPDATE, (_event, { address, description, book }) => {
     return withBookLock(book, () => {
       const addresses = loadAddresses(book)
-      const idx = addresses.findIndex(a => a.address.toLowerCase() === address.toLowerCase())
+      const idx = addresses.findIndex(a => addressKey(a.address) === addressKey(address))
       if (idx === -1) throw new Error('Address not found')
       if (description !== undefined) addresses[idx].description = description
       saveAddresses(addresses, book)
@@ -82,7 +83,7 @@ export function registerIpcHandlers() {
   ipcMain.handle(IPC.ADDRESSES_DELETE, (_event, { address, book }) => {
     return withBookLock(book, () => {
       const addresses = loadAddresses(book)
-      const entry = addresses.find(a => a.address.toLowerCase() === address.toLowerCase())
+      const entry = addresses.find(a => addressKey(a.address) === addressKey(address))
       if (!entry) throw new Error('Address not found')
       saveAddresses(addresses.filter(a => a !== entry), book)
 
@@ -138,7 +139,7 @@ export function registerIpcHandlers() {
   })
 
   ipcMain.handle(IPC.CHAINS_REFRESH, async () => {
-    const result = await client.fetchChainlist()
+    const result = await fetchChainlist()
     const existing = loadChains()
     const rpcMap = {}
     const enabledMap = {}
@@ -151,6 +152,12 @@ export function registerIpcHandlers() {
       c.enabled = enabledMap[c.chainid] !== undefined ? enabledMap[c.chainid] : true
     }
     await populateRpcUrls(result)
+    // The Etherscan chainlist is EVM-only: carry over non-EVM chains and
+    // re-seed any missing builtins so a refresh never drops them.
+    for (const c of existing) {
+      if ((c.family || 'evm') !== 'evm') result.push(c)
+    }
+    mergeBuiltinChains(result)
     saveChains(result)
     debug('Refreshed chains:', result.length)
     await fetchAndStoreIcons(result)
@@ -218,7 +225,7 @@ export function registerIpcHandlers() {
   })
 
   ipcMain.handle(IPC.STATUS_GET, () => {
-    return { apiCallCount: client.apiCallCount, apiErrorCount: client.apiErrorCount }
+    return providers.getStatus()
   })
 
   ipcMain.handle(IPC.ANYTYPE_LIST_SPACES, async () => {

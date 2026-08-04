@@ -1,37 +1,11 @@
 import fs from 'fs'
 import path from 'path'
 import { AbiCoder } from 'ethers'
-import { client } from './etherscan-client'
+import { providers } from './providers/provider-registry'
 import { getDataDir } from './data-store'
 import { debug } from './constants'
 
 const EIP1967_IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc'
-
-async function withRetry(fn, label) {
-  const delays = [1000, 2000, 4000]
-  let lastErr
-  for (let attempt = 0; attempt <= delays.length; attempt++) {
-    try {
-      return await fn()
-    } catch (err) {
-      lastErr = err
-      if (attempt < delays.length) {
-        debug(`${label} failed (attempt ${attempt + 1}/${delays.length + 1}), retrying in ${delays[attempt]}ms: ${err.message}`)
-        await new Promise(r => setTimeout(r, delays[attempt]))
-      }
-    }
-  }
-  throw lastErr
-}
-
-function validateProxyResult(data, method) {
-  if (data.error) throw new Error(data.error.message || `${method} RPC error`)
-  if (!data.result) return '0x'
-  if (typeof data.result === 'string' && !data.result.startsWith('0x')) {
-    throw new Error(`${method}: ${data.result.slice(0, 80)}`)
-  }
-  return data.result
-}
 
 function ensureContractDir(address, chainId) {
   const dir = path.join(getDataDir(), 'contracts', address, String(chainId))
@@ -49,65 +23,18 @@ function writeJsonSafe(filePath, data) {
   }
 }
 
-async function getCode(chainId, address) {
-  const data = await client.apiCall({
-    chainid: chainId,
-    module: 'proxy',
-    action: 'eth_getCode',
-    address,
-    tag: 'latest'
-  })
-  return validateProxyResult(data, 'eth_getCode')
-}
-
-async function getSourceCode(chainId, address) {
-  const data = await client.apiCall({
-    chainid: chainId,
-    module: 'contract',
-    action: 'getsourcecode',
-    address
-  })
-  if (data.status === '1' && Array.isArray(data.result) && data.result.length > 0) {
-    return data.result[0]
+function storeContractArtifacts(address, chainId, sourceInfo) {
+  const dir = ensureContractDir(address, chainId)
+  if (sourceInfo.ABI && sourceInfo.ABI !== 'Contract source code not verified') {
+    try {
+      writeJsonSafe(path.join(dir, 'abi.json'), JSON.parse(sourceInfo.ABI))
+    } catch {
+      writeJsonSafe(path.join(dir, 'abi.json'), sourceInfo.ABI)
+    }
   }
-  return null
-}
-
-async function getContractCreation(chainId, address) {
-  const data = await client.apiCall({
-    chainid: chainId,
-    module: 'contract',
-    action: 'getcontractcreation',
-    contractaddresses: address
-  })
-  if (data.status === '1' && Array.isArray(data.result) && data.result.length > 0) {
-    return data.result[0]
+  if (sourceInfo.SourceCode) {
+    writeJsonSafe(path.join(dir, 'source.json'), { sourceCode: sourceInfo.SourceCode })
   }
-  return null
-}
-
-async function getStorageAt(chainId, address, slot) {
-  const data = await client.apiCall({
-    chainid: chainId,
-    module: 'proxy',
-    action: 'eth_getStorageAt',
-    address,
-    position: slot,
-    tag: 'latest'
-  })
-  return validateProxyResult(data, 'eth_getStorageAt') || '0x0'
-}
-
-async function ethCall(chainId, to, callData) {
-  const data = await client.apiCall({
-    chainid: chainId,
-    module: 'proxy',
-    action: 'eth_call',
-    to,
-    data: callData,
-    tag: 'latest'
-  })
-  return validateProxyResult(data, 'eth_call')
 }
 
 function decodeAddress(hex) {
@@ -124,7 +51,7 @@ export async function resolveAddressType(chainId, address) {
   // Step 1: Check if EOA by getting code
   let code
   try {
-    code = await withRetry(() => getCode(chainId, address), `eth_getCode(${chainId})`)
+    code = await providers.getCode(chainId, address)
   } catch (err) {
     errors.push(`eth_getCode failed on chain ${chainId}: ${err.message}`)
     debug(`eth_getCode failed for ${address} on chain ${chainId}:`, err.message)
@@ -141,24 +68,12 @@ export async function resolveAddressType(chainId, address) {
   // Step 2: Get source code info
   let sourceInfo
   try {
-    sourceInfo = await withRetry(() => getSourceCode(chainId, address), `getsourcecode(${chainId})`)
+    sourceInfo = await providers.getSourceCode(chainId, address)
     if (sourceInfo) {
       if (sourceInfo.ContractName) {
         result.contractName = sourceInfo.ContractName
       }
-
-      // Store ABI and source locally
-      const dir = ensureContractDir(address, chainId)
-      if (sourceInfo.ABI && sourceInfo.ABI !== 'Contract source code not verified') {
-        try {
-          writeJsonSafe(path.join(dir, 'abi.json'), JSON.parse(sourceInfo.ABI))
-        } catch {
-          writeJsonSafe(path.join(dir, 'abi.json'), sourceInfo.ABI)
-        }
-      }
-      if (sourceInfo.SourceCode) {
-        writeJsonSafe(path.join(dir, 'source.json'), { sourceCode: sourceInfo.SourceCode })
-      }
+      storeContractArtifacts(address, chainId, sourceInfo)
     }
   } catch (err) {
     errors.push(`getsourcecode failed on chain ${chainId}: ${err.message}`)
@@ -167,7 +82,7 @@ export async function resolveAddressType(chainId, address) {
 
   // Step 3: Get contract creation info
   try {
-    const creation = await withRetry(() => getContractCreation(chainId, address), `getcontractcreation(${chainId})`)
+    const creation = await providers.getContractCreation(chainId, address)
     if (creation) {
       if (creation.contractCreator) result.contractCreator = creation.contractCreator
       if (creation.txHash) result.creationTxHash = creation.txHash
@@ -185,7 +100,7 @@ export async function resolveAddressType(chainId, address) {
         result.implementationAddress = sourceInfo.Implementation
       } else {
         // Fall back to EIP-1967 storage slot
-        const slotValue = await withRetry(() => getStorageAt(chainId, address, EIP1967_IMPL_SLOT), `eth_getStorageAt(${chainId})`)
+        const slotValue = await providers.getStorageAt(chainId, address, EIP1967_IMPL_SLOT)
         const impl = decodeAddress(slotValue)
         if (impl) result.implementationAddress = impl
       }
@@ -197,20 +112,10 @@ export async function resolveAddressType(chainId, address) {
     // Fetch ABI and source for the implementation contract
     if (result.implementationAddress) {
       try {
-        const implSource = await withRetry(() => getSourceCode(chainId, result.implementationAddress), `getsourcecode impl(${chainId})`)
+        const implSource = await providers.getSourceCode(chainId, result.implementationAddress)
         if (implSource) {
           if (implSource.ContractName) result.implementationName = implSource.ContractName
-          const implDir = ensureContractDir(result.implementationAddress, chainId)
-          if (implSource.ABI && implSource.ABI !== 'Contract source code not verified') {
-            try {
-              writeJsonSafe(path.join(implDir, 'abi.json'), JSON.parse(implSource.ABI))
-            } catch {
-              writeJsonSafe(path.join(implDir, 'abi.json'), implSource.ABI)
-            }
-          }
-          if (implSource.SourceCode) {
-            writeJsonSafe(path.join(implDir, 'source.json'), { sourceCode: implSource.SourceCode })
-          }
+          storeContractArtifacts(result.implementationAddress, chainId, implSource)
         }
       } catch (err) {
         errors.push(`Implementation getsourcecode failed on chain ${chainId}: ${err.message}`)
@@ -225,13 +130,11 @@ export async function resolveAddressType(chainId, address) {
 
     // VERSION()
     try {
-      await withRetry(async () => {
-        const versionResult = await ethCall(chainId, address, '0xffa1ad74')
-        if (versionResult && versionResult !== '0x') {
-          const [version] = coder.decode(['string'], versionResult)
-          result.version = version
-        }
-      }, `VERSION()(${chainId})`)
+      const versionResult = await providers.ethCall(chainId, address, '0xffa1ad74')
+      if (versionResult && versionResult !== '0x') {
+        const [version] = coder.decode(['string'], versionResult)
+        result.version = version
+      }
     } catch (err) {
       errors.push(`VERSION() failed on chain ${chainId}: ${err.message}`)
       debug(`VERSION() call failed for ${address} on chain ${chainId}:`, err.message)
@@ -239,13 +142,11 @@ export async function resolveAddressType(chainId, address) {
 
     // getOwners()
     try {
-      await withRetry(async () => {
-        const ownersResult = await ethCall(chainId, address, '0xa0e67e2b')
-        if (ownersResult && ownersResult !== '0x') {
-          const [owners] = coder.decode(['address[]'], ownersResult)
-          result.owners = owners.map(o => o.toString())
-        }
-      }, `getOwners()(${chainId})`)
+      const ownersResult = await providers.ethCall(chainId, address, '0xa0e67e2b')
+      if (ownersResult && ownersResult !== '0x') {
+        const [owners] = coder.decode(['address[]'], ownersResult)
+        result.owners = owners.map(o => o.toString())
+      }
     } catch (err) {
       errors.push(`getOwners() failed on chain ${chainId}: ${err.message}`)
       debug(`getOwners() call failed for ${address} on chain ${chainId}:`, err.message)
@@ -253,13 +154,11 @@ export async function resolveAddressType(chainId, address) {
 
     // getThreshold()
     try {
-      await withRetry(async () => {
-        const thresholdResult = await ethCall(chainId, address, '0xe75235b8')
-        if (thresholdResult && thresholdResult !== '0x') {
-          const [threshold] = coder.decode(['uint256'], thresholdResult)
-          result.threshold = Number(threshold)
-        }
-      }, `getThreshold()(${chainId})`)
+      const thresholdResult = await providers.ethCall(chainId, address, '0xe75235b8')
+      if (thresholdResult && thresholdResult !== '0x') {
+        const [threshold] = coder.decode(['uint256'], thresholdResult)
+        result.threshold = Number(threshold)
+      }
     } catch (err) {
       errors.push(`getThreshold() failed on chain ${chainId}: ${err.message}`)
       debug(`getThreshold() call failed for ${address} on chain ${chainId}:`, err.message)

@@ -2,6 +2,48 @@ import React, { useState } from 'react'
 import { Button, Input, EmptyState } from 'evm-ui'
 import useSettings from '../../hooks/useSettings'
 
+// Key/show/save row for the optional provider API keys.
+function OptionalKeySection({ title, blurb, placeholder, settingKey, settings, update }) {
+  const [value, setValue] = useState('')
+  const [show, setShow] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  if (!loaded && settings[settingKey] !== undefined) {
+    setValue(settings[settingKey] || '')
+    setLoaded(true)
+  }
+
+  const handleSave = async () => {
+    await update({ [settingKey]: value })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <div className="settings-section">
+      <h3>{title}</h3>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+        {blurb}
+      </p>
+      <div className="settings-row">
+        <Input
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => { setValue(e.target.value); setSaved(false) }}
+          placeholder={placeholder}
+        />
+        <Button variant="secondary" onClick={() => setShow(!show)}>
+          {show ? 'Hide' : 'Show'}
+        </Button>
+        <Button variant="primary" onClick={handleSave}>
+          {saved ? 'Saved!' : 'Save'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function SettingsScreen() {
   const { settings, loading, update } = useSettings()
   const [apiKey, setApiKey] = useState('')
@@ -95,6 +137,24 @@ export default function SettingsScreen() {
           </Button>
         </div>
       </div>
+
+      <OptionalKeySection
+        title="Routescan API Key (optional)"
+        blurb="Used as a fallback when Etherscan is unavailable or rate limited. Works without a key at lower rate limits; get a free key at routescan.io."
+        placeholder="Enter your Routescan API key"
+        settingKey="routescanApiKey"
+        settings={settings}
+        update={update}
+      />
+
+      <OptionalKeySection
+        title="TronGrid API Key (optional)"
+        blurb="Used when scanning Tron addresses. Works without a key at lower rate limits; get a free key at trongrid.io."
+        placeholder="Enter your TronGrid API key"
+        settingKey="tronGridApiKey"
+        settings={settings}
+        update={update}
+      />
 
       <div className="settings-section">
         <h3>Anytype API Key</h3>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { addressKey } from '../../../shared/address-validator'
 import useSortFilter from '../../hooks/useSortFilter'
 import AddressRow from './AddressRow'
 
@@ -41,7 +42,7 @@ export default function AddressTable({ addresses, chains, onUpdate, onDelete, on
                 onUpdate={onUpdate}
                 onDelete={onDelete}
                 onScan={onScan}
-                scanState={scanState?.address?.toLowerCase() === entry.address.toLowerCase() ? scanState : null}
+                scanState={scanState?.address && addressKey(scanState.address) === addressKey(entry.address) ? scanState : null}
               />
             ))}
           </tbody>

@@ -1,5 +1,8 @@
 import React, { useState } from 'react'
 import { Field, Input, Button } from 'evm-ui'
+import { detectFamily } from '../../../shared/address-validator'
+
+const FAMILY_LABELS = { evm: 'EVM', bitcoin: 'Bitcoin', solana: 'Solana', tron: 'Tron' }
 
 export default function AddressForm({ onSubmit, onCancel, initial }) {
   const [address, setAddress] = useState(initial?.address || '')
@@ -19,8 +22,8 @@ export default function AddressForm({ onSubmit, onCancel, initial }) {
       return
     }
 
-    if (!isEdit && !/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
-      setError('Invalid EVM address (must be 0x followed by 40 hex characters)')
+    if (!isEdit && !detectFamily(trimmed)) {
+      setError('Not a valid EVM, Bitcoin, Solana, or Tron address')
       return
     }
 
@@ -51,11 +54,16 @@ export default function AddressForm({ onSubmit, onCancel, initial }) {
                 mono
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="0x..."
+                placeholder="0x…, bc1…, T…, or base58"
                 disabled={submitting}
                 invalid={!!error}
               />
             </Field>
+            {!error && detectFamily(address.trim()) && (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                Detected: {FAMILY_LABELS[detectFamily(address.trim())]}
+              </div>
+            )}
           </div>
         )}
         <div style={{ flex: 1 }}>

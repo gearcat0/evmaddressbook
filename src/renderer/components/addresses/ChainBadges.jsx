@@ -1,9 +1,11 @@
 import React from 'react'
 import ChainIcon from '../ChainIcon'
 
+const TYPE_LABELS = { eoa: 'EOA', wallet: 'Wallet', program: 'Program', account: 'Account' }
+
 function getTypeLabel(info) {
   if (!info || !info.addressType) return null
-  if (info.addressType === 'eoa') return 'EOA'
+  if (TYPE_LABELS[info.addressType]) return TYPE_LABELS[info.addressType]
   if (info.contractName === 'GnosisSafeProxy' || info.contractName === 'SafeProxy') {
     const t = info.threshold || '?'
     const o = info.owners ? info.owners.length : '?'
@@ -14,18 +16,30 @@ function getTypeLabel(info) {
   return 'Contract'
 }
 
+function formatBalance(info) {
+  if (typeof info.balanceSats === 'number') return `${info.balanceSats / 1e8} BTC`
+  if (typeof info.balanceLamports === 'number') return `${info.balanceLamports / 1e9} SOL`
+  if (typeof info.balanceSun === 'number') return `${info.balanceSun / 1e6} TRX`
+  return null
+}
+
 function buildTooltip(chainName, info) {
   const lines = [chainName]
   if (!info || !info.addressType) return chainName
 
-  lines.push(`Type: ${info.addressType === 'eoa' ? 'EOA' : 'Contract'}`)
+  lines.push(`Type: ${TYPE_LABELS[info.addressType] || 'Contract'}`)
   if (info.contractName) lines.push(`Contract: ${info.contractName}`)
+  if (info.scriptType) lines.push(`Script: ${info.scriptType}`)
+  if (info.owner) lines.push(`Owner program: ${info.owner}`)
   if (info.contractCreator) lines.push(`Creator: ${info.contractCreator}`)
   if (info.creationTxHash) lines.push(`Creation TX: ${info.creationTxHash.slice(0, 18)}...`)
   if (info.implementationAddress) lines.push(`Implementation: ${info.implementationAddress}`)
   if (info.version) lines.push(`Version: ${info.version}`)
   if (info.owners) lines.push(`Owners: ${info.owners.length} (${info.owners.map(o => o.slice(0, 8) + '...').join(', ')})`)
   if (info.threshold) lines.push(`Threshold: ${info.threshold}`)
+  if (typeof info.txCount === 'number') lines.push(`Transactions: ${info.txCount}`)
+  const balance = formatBalance(info)
+  if (balance) lines.push(`Balance: ${balance}`)
 
   return lines.join('\n')
 }
@@ -38,7 +52,12 @@ export default function ChainBadges({ activeChains, chains, address, lastScanned
 
   const chainMap = {}
   for (const c of chains) {
-    chainMap[c.chainid] = { name: c.chainname, explorer: c.blockexplorer, enabled: c.enabled }
+    chainMap[c.chainid] = {
+      name: c.chainname,
+      explorer: c.blockexplorer,
+      enabled: c.enabled,
+      addressUrlTemplate: c.addressUrlTemplate
+    }
   }
 
   const entries = Object.entries(activeChains).filter(([chainId]) => {
@@ -53,13 +72,15 @@ export default function ChainBadges({ activeChains, chains, address, lastScanned
         const chainName = chain.name || `Chain ${chainId}`
         const tooltip = buildTooltip(chainName, info)
         const typeLabel = getTypeLabel(info)
-        const explorerUrl = chain.explorer && address
-          ? `${chain.explorer.replace(/\/+$/, '')}/address/${address}`
-          : null
+        const explorerUrl = address && chain.addressUrlTemplate
+          ? chain.addressUrlTemplate.replace('{address}', address)
+          : chain.explorer && address
+            ? `${chain.explorer.replace(/\/+$/, '')}/address/${address}`
+            : null
 
         const content = (
           <>
-            <ChainIcon chainId={Number(chainId)} size={14} />
+            <ChainIcon chainId={chainId} size={14} />
             {typeLabel && <span className="chain-type-label">{typeLabel}</span>}
           </>
         )
