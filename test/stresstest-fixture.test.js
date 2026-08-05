@@ -20,14 +20,17 @@ afterAll(() => removeDataDir(dir))
 
 describe('stresstest fixture book', () => {
   it('loads all entries without triggering a migration rewrite', () => {
-    expect(entries.length).toBeGreaterThanOrEqual(2016)
+    expect(entries.length).toBeGreaterThanOrEqual(2030)
     const onDisk = fs.readFileSync(path.join(dir, 'addresses.json'), 'utf-8')
     expect(onDisk).toBe(fs.readFileSync(FIXTURE, 'utf-8'))
   })
 
   it('contains every supported family, including all Bitcoin script types', () => {
     const families = new Set(entries.map(e => detectFamily(e.address)))
-    expect(families).toEqual(new Set(['evm', 'bitcoin', 'solana', 'tron']))
+    expect(families).toEqual(new Set([
+      'evm', 'bitcoin', 'solana', 'tron',
+      'cardano', 'xrp', 'dogecoin', 'zcash', 'monero'
+    ]))
 
     const scriptTypes = new Set(
       entries

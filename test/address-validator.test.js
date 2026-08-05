@@ -12,6 +12,16 @@ const SOL_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
 const SOL_SYSTEM = '11111111111111111111111111111111'
 const TRON_USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
 const TRON_WALLET = 'TNaRAoLUyYEV2uF7GUrzSjRQTU8v5ZJ5VR'
+const ADA_SHELLEY = 'addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x' // CIP-19 vector
+const ADA_STAKE = 'stake1u9ylzsgxaa6xctf4juup682ar3juj85n8tx3hthnljg47zctvm3rc'
+const ADA_BYRON = 'Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi'
+const XRP_ADDR = 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh'
+const DOGE_ADDR = 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L'
+const ZEC_T1 = 't1RyCw14wRXrh3mp21uxgr9ynjem7cNUkMH'
+const ZEC_T3 = 't3aPMe94jMKyrgkbH5SSukimvdMFJ59EFhP'
+const ZEC_SAPLING = 'zs1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75c8v35z' // librustzcash vector
+const XMR_STANDARD = '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A'
+const XMR_SUBADDRESS = '888tNkZrPN6JsEgekjMnABU4TBzc2Dt29EPAvkRxbANsAnjyPbb3iQ1YBRk1UXcdRsiKc9dhwMVgN5S9cQUiyoogDavup3H'
 
 describe('normalizeAddress — accepted families and canonical forms', () => {
   it('checksums EVM addresses to EIP-55', () => {
@@ -54,6 +64,31 @@ describe('normalizeAddress — accepted families and canonical forms', () => {
   it('trims surrounding whitespace', () => {
     expect(normalizeAddress(`  ${TRON_USDT}\n`).address).toBe(TRON_USDT)
   })
+
+  it('classifies Cardano Shelley, stake, and Byron addresses', () => {
+    expect(normalizeAddress(ADA_SHELLEY)).toEqual({ family: 'cardano', address: ADA_SHELLEY, subtype: 'shelley' })
+    expect(normalizeAddress(ADA_STAKE)).toEqual({ family: 'cardano', address: ADA_STAKE, subtype: 'stake' })
+    expect(normalizeAddress(ADA_BYRON)).toEqual({ family: 'cardano', address: ADA_BYRON, subtype: 'byron' })
+  })
+
+  it('classifies XRP classic addresses via the ripple alphabet checksum', () => {
+    expect(normalizeAddress(XRP_ADDR)).toEqual({ family: 'xrp', address: XRP_ADDR })
+  })
+
+  it('classifies Dogecoin addresses with subtypes', () => {
+    expect(normalizeAddress(DOGE_ADDR)).toEqual({ family: 'dogecoin', address: DOGE_ADDR, subtype: 'p2pkh' })
+  })
+
+  it('classifies Zcash transparent and Sapling shielded addresses', () => {
+    expect(normalizeAddress(ZEC_T1)).toEqual({ family: 'zcash', address: ZEC_T1, subtype: 'p2pkh' })
+    expect(normalizeAddress(ZEC_T3)).toEqual({ family: 'zcash', address: ZEC_T3, subtype: 'p2sh' })
+    expect(normalizeAddress(ZEC_SAPLING)).toEqual({ family: 'zcash', address: ZEC_SAPLING, subtype: 'sapling' })
+  })
+
+  it('classifies Monero standard and subaddresses via the keccak checksum', () => {
+    expect(normalizeAddress(XMR_STANDARD)).toEqual({ family: 'monero', address: XMR_STANDARD, subtype: 'standard' })
+    expect(normalizeAddress(XMR_SUBADDRESS)).toEqual({ family: 'monero', address: XMR_SUBADDRESS, subtype: 'subaddress' })
+  })
 })
 
 describe('normalizeAddress — rejections', () => {
@@ -68,7 +103,15 @@ describe('normalizeAddress — rejections', () => {
     ['bech32 mixed case', 'bc1Q' + BTC_P2WPKH.slice(4)],
     ['Tron flipped case (checksum breaks)', TRON_USDT.replace('Hq', 'HQ')],
     ['Solana with invalid base58 chars', SOL_WALLET.slice(0, -2) + '0O'],
-    ['base58 wrong payload length', 'abc']
+    ['base58 wrong payload length', 'abc'],
+    ['Cardano Shelley corrupted char', 'addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3q'],
+    ['Cardano Byron corrupted char', 'Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAj'],
+    ['XRP corrupted checksum', 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTi'],
+    ['Dogecoin flipped case', 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7l'],
+    ['Zcash t1 corrupted char', 't1RyCw14wRXrh3mp21uxgr9ynjem7cNUkMI'],
+    ['Zcash Sapling corrupted char', 'zs1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75c8v35q'],
+    ['Monero corrupted char', '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3B'],
+    ['Monero wrong length', '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3']
   ]
 
   for (const [label, input] of bad) {
@@ -85,6 +128,11 @@ describe('detectFamily', () => {
     expect(detectFamily(BTC_P2WPKH)).toBe('bitcoin')
     expect(detectFamily(SOL_WALLET)).toBe('solana')
     expect(detectFamily(TRON_USDT)).toBe('tron')
+    expect(detectFamily(ADA_SHELLEY)).toBe('cardano')
+    expect(detectFamily(XRP_ADDR)).toBe('xrp')
+    expect(detectFamily(DOGE_ADDR)).toBe('dogecoin')
+    expect(detectFamily(ZEC_SAPLING)).toBe('zcash')
+    expect(detectFamily(XMR_STANDARD)).toBe('monero')
     expect(detectFamily('nope')).toBeNull()
     expect(detectFamily(null)).toBeNull()
   })
@@ -94,12 +142,19 @@ describe('addressKey', () => {
   it('is case-insensitive for hex and bech32', () => {
     expect(addressKey(VITALIK)).toBe(VITALIK.toLowerCase())
     expect(addressKey(BTC_P2WPKH.toUpperCase())).toBe(BTC_P2WPKH)
+    expect(addressKey(ADA_SHELLEY.toUpperCase())).toBe(ADA_SHELLEY)
+    expect(addressKey(ADA_STAKE.toUpperCase())).toBe(ADA_STAKE)
+    expect(addressKey(ZEC_SAPLING.toUpperCase())).toBe(ZEC_SAPLING)
   })
 
   it('is case-exact for base58 families', () => {
     expect(addressKey(SOL_PROGRAM)).toBe(SOL_PROGRAM)
     expect(addressKey(TRON_USDT)).toBe(TRON_USDT)
     expect(addressKey(BTC_P2PKH)).toBe(BTC_P2PKH)
+    expect(addressKey(XRP_ADDR)).toBe(XRP_ADDR)
+    expect(addressKey(DOGE_ADDR)).toBe(DOGE_ADDR)
+    expect(addressKey(ADA_BYRON)).toBe(ADA_BYRON)
+    expect(addressKey(XMR_STANDARD)).toBe(XMR_STANDARD)
     // Two Solana addresses differing only in case must NOT collide
     expect(addressKey(SOL_PROGRAM)).not.toBe(addressKey(SOL_PROGRAM.toLowerCase()))
   })

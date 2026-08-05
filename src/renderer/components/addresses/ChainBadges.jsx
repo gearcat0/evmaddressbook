@@ -1,7 +1,15 @@
 import React from 'react'
 import ChainIcon from '../ChainIcon'
 
-const TYPE_LABELS = { eoa: 'EOA', wallet: 'Wallet', program: 'Program', account: 'Account' }
+const TYPE_LABELS = {
+  eoa: 'EOA',
+  wallet: 'Wallet',
+  program: 'Program',
+  account: 'Account',
+  private: 'Private',
+  script: 'Script',
+  stake: 'Stake'
+}
 
 function getTypeLabel(info) {
   if (!info || !info.addressType) return null
@@ -20,6 +28,10 @@ function formatBalance(info) {
   if (typeof info.balanceSats === 'number') return `${info.balanceSats / 1e8} BTC`
   if (typeof info.balanceLamports === 'number') return `${info.balanceLamports / 1e9} SOL`
   if (typeof info.balanceSun === 'number') return `${info.balanceSun / 1e6} TRX`
+  if (typeof info.balanceLovelace === 'number') return `${info.balanceLovelace / 1e6} ADA`
+  if (typeof info.balanceDrops === 'number') return `${info.balanceDrops / 1e6} XRP`
+  if (typeof info.balanceKoinu === 'number') return `${info.balanceKoinu / 1e8} DOGE`
+  if (typeof info.balanceZats === 'number') return `${info.balanceZats / 1e8} ZEC`
   return null
 }
 
@@ -28,8 +40,12 @@ function buildTooltip(chainName, info) {
   if (!info || !info.addressType) return chainName
 
   lines.push(`Type: ${TYPE_LABELS[info.addressType] || 'Contract'}`)
+  if (info.addressType === 'private') lines.push('Activity and balance are not publicly visible')
   if (info.contractName) lines.push(`Contract: ${info.contractName}`)
   if (info.scriptType) lines.push(`Script: ${info.scriptType}`)
+  if (info.subtype) lines.push(`Subtype: ${info.subtype}`)
+  if (info.pool) lines.push(`Pool: ${info.pool}`)
+  if (info.era) lines.push(`Era: ${info.era}`)
   if (info.owner) lines.push(`Owner program: ${info.owner}`)
   if (info.contractCreator) lines.push(`Creator: ${info.contractCreator}`)
   if (info.creationTxHash) lines.push(`Creation TX: ${info.creationTxHash.slice(0, 18)}...`)

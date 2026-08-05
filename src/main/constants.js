@@ -47,6 +47,18 @@ export const RPC_RATE_LIMIT_MS = 100
 export const BITCOIN_RATE_LIMIT_MS = 1000
 export const SOLANA_RATE_LIMIT_MS = 1000
 export const TRON_RATE_LIMIT_MS = 500
+export const CARDANO_RATE_LIMIT_MS = 1000
+export const XRP_RATE_LIMIT_MS = 500
+export const DOGECOIN_RATE_LIMIT_MS = 2000
+export const ZCASH_RATE_LIMIT_MS = 2000
+
+export const KOIOS_API_URL = 'https://api.koios.rest/api/v1'
+export const XRPL_RPC_URL = 'https://xrplcluster.com'
+export const BLOCKCYPHER_DOGE_URL = 'https://api.blockcypher.com/v1/doge/main'
+export const THREEXPL_API_URL = 'https://api.3xpl.com'
+// 3xpl's published sandbox token; heavily throttled but keyless.
+// Override with settings.threeXplToken for real usage volumes.
+export const THREEXPL_PUBLIC_TOKEN = '3A0_t3st3xplor3rpub11cb3t4efcd21748a5e'
 
 export const ANYTYPE_API_URL = 'http://127.0.0.1:31009/v1'
 export const ANYTYPE_API_VERSION = '2025-11-08'

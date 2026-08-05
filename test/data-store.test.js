@@ -16,7 +16,7 @@ describe('mergeBuiltinChains', () => {
   it('appends missing builtins and reports the change', () => {
     const chains = [{ chainid: '1', chainname: 'Ethereum Mainnet' }]
     expect(mergeBuiltinChains(chains)).toBe(true)
-    expect(chains.map(c => c.chainid)).toEqual(['1', 'bitcoin', 'solana', 'tron'])
+    expect(chains.map(c => c.chainid)).toEqual(['1', ...BUILTIN_CHAINS.map(c => c.chainid)])
   })
 
   it('leaves present builtins untouched (user state preserved)', () => {

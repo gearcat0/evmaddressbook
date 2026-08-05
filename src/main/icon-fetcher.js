@@ -171,7 +171,12 @@ function builtinIconSvg(letter, color) {
 const BUILTIN_ICON_SVGS = {
   bitcoin: builtinIconSvg('₿', '#f7931a'),
   solana: builtinIconSvg('S', '#9945ff'),
-  tron: builtinIconSvg('T', '#eb0029')
+  tron: builtinIconSvg('T', '#eb0029'),
+  cardano: builtinIconSvg('₳', '#0033ad'),
+  xrp: builtinIconSvg('X', '#23292f'),
+  dogecoin: builtinIconSvg('Ð', '#c2a633'),
+  zcash: builtinIconSvg('Z', '#f4b728'),
+  monero: builtinIconSvg('M', '#f26822')
 }
 
 function writeBuiltinIcons(iconsDir) {

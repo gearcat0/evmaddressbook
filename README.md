@@ -4,15 +4,16 @@
 [![Version](https://img.shields.io/github/package-json/v/gearcat0/evmaddressbook)](https://github.com/gearcat0/evmaddressbook/blob/master/package.json)
 [![License: ISC](https://img.shields.io/badge/license-ISC-blue.svg)](#license)
 
-A desktop application for managing crypto addresses and monitoring their on-chain activity — EVM chains plus Bitcoin, Solana, and Tron.
+A desktop application for managing crypto addresses and monitoring their on-chain activity — EVM chains plus Bitcoin, Solana, Tron, Cardano, XRP, Dogecoin, Zcash, and Monero.
 
 ![EVM Address Book showing a 2016-entry book with Bitcoin, Solana, Tron, and EVM addresses](docs/screenshot.png)
 
 ## Features
 
-- **Address Management** — Add, edit, and delete addresses with descriptions; the chain family (EVM, Bitcoin, Solana, Tron) is auto-detected from the address format
+- **Address Management** — Add, edit, and delete addresses with descriptions; the chain family (EVM, Bitcoin, Solana, Tron, Cardano, XRP, Dogecoin, Zcash, Monero) is auto-detected from the address format
 - **Multiple Address Books** — Organize addresses into separate books; switch between them, create new ones, and delete them (the built-in "Default" book cannot be deleted)
-- **Multi-Chain Scanning** — Detect activity across all Etherscan-supported EVM chains, plus Bitcoin (mempool.space), Solana (RPC), and Tron (TronGrid)
+- **Multi-Chain Scanning** — Detect activity across all Etherscan-supported EVM chains, plus Bitcoin (mempool.space), Solana (RPC), Tron (TronGrid), Cardano (Koios), XRP (XRPL cluster), Dogecoin (Blockcypher), and Zcash transparent addresses (3xpl)
+- **Privacy-Chain Aware** — Monero addresses and Zcash shielded addresses are validated and tracked but marked Private: their activity is not publicly visible by design, so no scanning is attempted
 - **Multiple Data Providers** — Etherscan, direct JSON-RPC, Routescan, Blockscout, and Sourcify with automatic per-capability fallback; works without any API key
 - **Address Type Discovery** — Identify whether each address is an EOA, contract, transparent proxy, or Gnosis Safe (with implementation address, Safe owners/threshold, contract creator); Bitcoin script types (P2PKH/P2SH/P2WPKH/P2WSH/P2TR), Solana wallets/programs/token accounts, and Tron wallets/contracts, with balances
 - **Contract Storage** — ABI and source code saved locally for verified contracts
@@ -29,7 +30,7 @@ A desktop application for managing crypto addresses and monitoring their on-chai
 - **vitest** — Test runner
 - **ethers.js** — EIP-55/base58 address handling and ABI decoding for Safe/proxy resolution
 - **Etherscan API v2, JSON-RPC, Routescan, Blockscout, Sourcify** — EVM activity detection and contract metadata, with automatic fallback
-- **mempool.space, Solana RPC, TronGrid** — Non-EVM chain scanning
+- **mempool.space, Solana RPC, TronGrid, Koios, XRPL, Blockcypher, 3xpl** — Non-EVM chain scanning
 
 ## Getting Started
 
@@ -175,6 +176,11 @@ When scanning, each address on each active chain is classified:
 | Bitcoin | **Wallet** | Script type (p2pkh/p2sh/p2wpkh/p2wsh/p2tr), tx count, balance |
 | Solana | **Wallet / Program / Account** | Owner program, executable flag, balance |
 | Tron | **Wallet / Contract** | Contract name, balance |
+| Cardano | **Wallet / Script / Stake** | Era (Shelley/Byron), balance |
+| XRP | **Wallet** | Balance, sequence |
+| Dogecoin | **Wallet** | Script type, tx count, balance |
+| Zcash | **Wallet / Private** | Script type or shielded pool, tx count, balance (transparent only) |
+| Monero | **Private** | Address subtype (standard/subaddress/integrated); activity not publicly visible |
 
 ## License
 

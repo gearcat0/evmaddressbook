@@ -1,13 +1,13 @@
 import { providers, getFamilyProvider } from './providers/provider-registry'
 import { loadChains, loadAddresses, saveAddresses } from './data-store'
 import { resolveAddressType } from './address-type-resolver'
-import { detectFamily, addressKey } from '../shared/address-validator'
+import { detectFamily, addressKey, SUPPORTED_FAMILIES_LABEL } from '../shared/address-validator'
 import { debug } from './constants'
 
 export async function scanAddress(address, sender, filterChainId = null, book = null) {
   const family = detectFamily(address)
   if (!family) {
-    throw new Error(`Not a valid EVM, Bitcoin, Solana, or Tron address: ${address}`)
+    throw new Error(`Not a valid address for any supported chain (${SUPPORTED_FAMILIES_LABEL}): ${address}`)
   }
 
   // An address only exists on chains of its own family.

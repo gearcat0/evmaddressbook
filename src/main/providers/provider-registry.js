@@ -8,9 +8,15 @@ import { sourcifyProvider } from './sourcify-provider'
 import { bitcoinProvider } from './bitcoin-provider'
 import { solanaProvider } from './solana-provider'
 import { tronProvider } from './tron-provider'
+import { cardanoProvider } from './cardano-provider'
+import { xrpProvider } from './xrp-provider'
+import { dogecoinProvider } from './dogecoin-provider'
+import { zcashProvider } from './zcash-provider'
+import { moneroProvider } from './monero-provider'
 
 const REGISTRY = [etherscanProvider, rpcProvider, routescanProvider, blockscoutProvider, sourcifyProvider,
-  bitcoinProvider, solanaProvider, tronProvider]
+  bitcoinProvider, solanaProvider, tronProvider,
+  cardanoProvider, xrpProvider, dogecoinProvider, zcashProvider, moneroProvider]
 
 export function registerProvider(provider) {
   REGISTRY.push(provider)

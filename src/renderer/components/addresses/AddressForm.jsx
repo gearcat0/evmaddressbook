@@ -1,8 +1,18 @@
 import React, { useState } from 'react'
 import { Field, Input, Button } from 'evm-ui'
-import { detectFamily } from '../../../shared/address-validator'
+import { detectFamily, SUPPORTED_FAMILIES_LABEL } from '../../../shared/address-validator'
 
-const FAMILY_LABELS = { evm: 'EVM', bitcoin: 'Bitcoin', solana: 'Solana', tron: 'Tron' }
+const FAMILY_LABELS = {
+  evm: 'EVM',
+  bitcoin: 'Bitcoin',
+  solana: 'Solana',
+  tron: 'Tron',
+  cardano: 'Cardano',
+  xrp: 'XRP Ledger',
+  dogecoin: 'Dogecoin',
+  zcash: 'Zcash',
+  monero: 'Monero'
+}
 
 export default function AddressForm({ onSubmit, onCancel, initial }) {
   const [address, setAddress] = useState(initial?.address || '')
@@ -23,7 +33,7 @@ export default function AddressForm({ onSubmit, onCancel, initial }) {
     }
 
     if (!isEdit && !detectFamily(trimmed)) {
-      setError('Not a valid EVM, Bitcoin, Solana, or Tron address')
+      setError(`Not a valid address for any supported chain (${SUPPORTED_FAMILIES_LABEL})`)
       return
     }
 
@@ -54,7 +64,7 @@ export default function AddressForm({ onSubmit, onCancel, initial }) {
                 mono
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="0x…, bc1…, T…, or base58"
+                placeholder="Any supported address (0x…, bc1…, addr1…, r…, D…, t1…, 4…, …)"
                 disabled={submitting}
                 invalid={!!error}
               />

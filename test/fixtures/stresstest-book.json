@@ -21391,5 +21391,193 @@
     },
     "lastScanned": "2026-08-05T04:19:26.541Z",
     "lastScanErrors": []
+  },
+  {
+    "address": "addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x",
+    "family": "cardano",
+    "description": "CIP-19 reference base address (Cardano docs test vector, funded on mainnet)",
+    "activeChains": {
+      "cardano": {
+        "addressType": "wallet",
+        "balanceLovelace": 1000000
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:38.411Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi",
+    "family": "cardano",
+    "description": "Byron-era address from Cardano documentation",
+    "activeChains": {
+      "cardano": {
+        "addressType": "wallet",
+        "era": "byron",
+        "balanceLovelace": 0
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:40.969Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "stake1u9ylzsgxaa6xctf4juup682ar3juj85n8tx3hthnljg47zctvm3rc",
+    "family": "cardano",
+    "description": "Registered Cardano stake account (sample)",
+    "activeChains": {
+      "cardano": {
+        "addressType": "stake",
+        "balanceLovelace": 0
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:42.606Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "addr1vyfpxd4fzrdmw52kvpq903us0ha24aytf9aqwm6lzd29jnc6fathm",
+    "family": "cardano",
+    "description": "Active Cardano enterprise address (sampled from mainnet)",
+    "activeChains": {
+      "cardano": {
+        "addressType": "wallet",
+        "balanceLovelace": 10000000
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:45.022Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+    "family": "xrp",
+    "description": "XRPL documentation example account",
+    "activeChains": {
+      "xrp": {
+        "addressType": "wallet",
+        "balanceDrops": 56770125556,
+        "sequence": 44196
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:46.217Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "rEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh",
+    "family": "xrp",
+    "description": "Binance-tagged XRP wallet",
+    "activeChains": {
+      "xrp": {
+        "addressType": "wallet",
+        "balanceDrops": 99999000,
+        "sequence": 568882
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:47.432Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "rrrrrrrrrrrrrrrrrrrrrhoLvTp",
+    "family": "xrp",
+    "description": "ACCOUNT_ZERO special XRP address (not funded on ledger)",
+    "activeChains": {},
+    "lastScanned": "2026-08-05T09:48:48.717Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L",
+    "family": "dogecoin",
+    "description": "Famous DOGE mega-wallet (ex-Robinhood custody)",
+    "activeChains": {
+      "dogecoin": {
+        "addressType": "wallet",
+        "txCount": 1482,
+        "balanceKoinu": 6219391848381,
+        "scriptType": "p2pkh"
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:49.878Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "DDogepartyxxxxxxxxxxxxxxxxxxw1dfzr",
+    "family": "dogecoin",
+    "description": "Dogeparty burn address (~1.85B DOGE burned)",
+    "activeChains": {
+      "dogecoin": {
+        "addressType": "wallet",
+        "txCount": 7586,
+        "balanceKoinu": 185458827448219100,
+        "scriptType": "p2pkh"
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:50.896Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "t1RyCw14wRXrh3mp21uxgr9ynjem7cNUkMH",
+    "family": "zcash",
+    "description": "Largest transparent ZEC address (~582k ZEC)",
+    "activeChains": {
+      "zcash": {
+        "addressType": "wallet",
+        "txCount": 350,
+        "balanceZats": 58213909204000,
+        "scriptType": "p2pkh"
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:52.254Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "t3aPMe94jMKyrgkbH5SSukimvdMFJ59EFhP",
+    "family": "zcash",
+    "description": "Top Zcash P2SH transparent address",
+    "activeChains": {
+      "zcash": {
+        "addressType": "wallet",
+        "txCount": 148,
+        "balanceZats": 43892089650000,
+        "scriptType": "p2sh"
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:53.512Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "zs1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75c8v35z",
+    "family": "zcash",
+    "description": "Sapling shielded test vector (librustzcash) — activity is private",
+    "activeChains": {
+      "zcash": {
+        "addressType": "private",
+        "pool": "sapling"
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:54.118Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A",
+    "family": "monero",
+    "description": "Monero Project general fund donation address",
+    "activeChains": {
+      "monero": {
+        "addressType": "private",
+        "subtype": "standard"
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:54.710Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "888tNkZrPN6JsEgekjMnABU4TBzc2Dt29EPAvkRxbANsAnjyPbb3iQ1YBRk1UXcdRsiKc9dhwMVgN5S9cQUiyoogDavup3H",
+    "family": "monero",
+    "description": "Monero CCS donation subaddress",
+    "activeChains": {
+      "monero": {
+        "addressType": "private",
+        "subtype": "subaddress"
+      }
+    },
+    "lastScanned": "2026-08-05T09:48:55.225Z",
+    "lastScanErrors": []
   }
 ]
