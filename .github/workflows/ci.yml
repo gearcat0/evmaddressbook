@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # The app depends on the sibling repo evm-ui via "file:../evm-ui",
+      # so both are checked out side by side.
+      - uses: actions/checkout@v4
+        with:
+          path: evmaddressbook
+
+      - uses: actions/checkout@v4
+        with:
+          repository: gearcat0/evm-ui
+          path: evm-ui
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            evmaddressbook/package-lock.json
+            evm-ui/package-lock.json
+
+      - name: Build evm-ui
+        working-directory: evm-ui
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install dependencies
+        working-directory: evmaddressbook
+        run: npm ci
+
+      - name: Run tests
+        working-directory: evmaddressbook
+        run: npm test
+
+      - name: Build
+        working-directory: evmaddressbook
+        run: npm run build
