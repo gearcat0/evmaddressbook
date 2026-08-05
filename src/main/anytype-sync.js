@@ -160,9 +160,10 @@ function remoteDescription(member, address) {
 
 function remoteToEntry(member) {
   let address = member.address
-  try { address = normalizeAddress(member.address).address } catch {}
+  let family
+  try { ({ address, family } = normalizeAddress(member.address)) } catch {}
   const desc = remoteDescription(member, address)
-  return {
+  const entry = {
     address,
     description: desc,
     activeChains: {},
@@ -170,6 +171,8 @@ function remoteToEntry(member) {
     anytypeObjectId: member.id,
     anytypeName: desc // baseline: the description as last reconciled with Anytype
   }
+  if (family) entry.family = family
+  return entry
 }
 
 // Serialize syncBook calls per book so the manual button and the background

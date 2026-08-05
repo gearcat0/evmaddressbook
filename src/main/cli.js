@@ -49,7 +49,7 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    return writeStdout('1.5.1\n')
+    return writeStdout('1.5.2\n')
   }
 
   if (book !== null && !bookExists(book)) {
