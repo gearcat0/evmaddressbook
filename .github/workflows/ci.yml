@@ -11,16 +11,16 @@ jobs:
     steps:
       # The app depends on the sibling repo evm-ui via "file:../evm-ui",
       # so both are checked out side by side.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: evmaddressbook
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: gearcat0/evm-ui
           path: evm-ui
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
