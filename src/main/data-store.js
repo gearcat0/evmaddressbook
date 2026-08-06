@@ -175,6 +175,15 @@ export function saveSettings(settings) {
   resetDataDirCache()
 }
 
+// Default filename for exporting a book, e.g. "stresstest-export-2026-08-06-143045.json".
+export function exportFileName(book, now = new Date()) {
+  const name = String(book || DEFAULT_BOOK).replace(/[^\p{L}\p{N}_-]+/gu, '-').replace(/^-+|-+$/g, '') || 'addressbook'
+  const pad = n => String(n).padStart(2, '0')
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+    `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+  return `${name}-export-${stamp}.json`
+}
+
 // Tombstones: Anytype object ids of locally-deleted addresses, pending remote
 // deletion (archival) on the next sync. Keyed by book name.
 export function loadDeletions() {

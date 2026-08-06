@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
-import { loadChains, loadAddresses, mergeBuiltinChains } from '../src/main/data-store'
+import { loadChains, loadAddresses, mergeBuiltinChains, exportFileName } from '../src/main/data-store'
 import { BUILTIN_CHAINS } from '../src/main/builtin-chains'
 import { useTempDataDir, removeDataDir, readJson } from './helpers'
 
@@ -48,6 +48,23 @@ describe('loadChains', () => {
     const before = fs.statSync(path.join(dir, 'chains.json')).mtimeMs
     loadChains()
     expect(fs.statSync(path.join(dir, 'chains.json')).mtimeMs).toBe(before)
+  })
+})
+
+describe('exportFileName', () => {
+  const now = new Date(2026, 7, 6, 14, 30, 45) // 2026-08-06 14:30:45 local
+
+  it('combines book name, export marker, and timestamp', () => {
+    expect(exportFileName('stresstest', now)).toBe('stresstest-export-2026-08-06-143045.json')
+  })
+
+  it('sanitizes characters that are unsafe in filenames', () => {
+    expect(exportFileName('Cold Storage / 2026', now)).toBe('Cold-Storage-2026-export-2026-08-06-143045.json')
+  })
+
+  it('falls back to the Default book name and a generic stem', () => {
+    expect(exportFileName(null, now)).toBe('Default-export-2026-08-06-143045.json')
+    expect(exportFileName('///', now)).toBe('addressbook-export-2026-08-06-143045.json')
   })
 })
 

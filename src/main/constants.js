@@ -7,6 +7,7 @@ export const IPC = {
   ADDRESSES_UPDATE: 'addresses:update',
   ADDRESSES_DELETE: 'addresses:delete',
   ADDRESSES_SCAN: 'addresses:scan',
+  ADDRESSES_EXPORT: 'addresses:export',
   BOOKS_LIST: 'books:list',
   BOOKS_CREATE: 'books:create',
   BOOKS_DELETE: 'books:delete',

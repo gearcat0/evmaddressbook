@@ -23,6 +23,7 @@ export default function AddressesScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [bookError, setBookError] = useState('')
+  const [exportStatus, setExportStatus] = useState(null) // null | {exporting} | {path, count} | {error}
 
   useEffect(() => {
     const unsubProgress = window.api.onScanProgress((data) => {
@@ -114,6 +115,21 @@ export default function AddressesScreen() {
     }
   }
 
+  const handleExport = async () => {
+    setExportStatus({ exporting: true })
+    try {
+      const result = await window.api.exportAddresses(current)
+      if (result.canceled) {
+        setExportStatus(null)
+        return
+      }
+      setExportStatus({ path: result.path, count: result.count })
+      setTimeout(() => setExportStatus(null), 6000)
+    } catch (err) {
+      setExportStatus({ error: err.message || 'Export failed' })
+    }
+  }
+
   const handleDeleteBook = async () => {
     setBookError('')
     try {
@@ -149,6 +165,15 @@ export default function AddressesScreen() {
             </Button>
           )}
           <Button
+            variant="secondary"
+            size="sm"
+            disabled={!!(exportStatus && exportStatus.exporting)}
+            title="Save this address book as a JSON file"
+            onClick={handleExport}
+          >
+            {exportStatus && exportStatus.exporting ? 'Exporting…' : 'Export'}
+          </Button>
+          <Button
             variant="danger"
             size="sm"
             disabled={current === DEFAULT_BOOK}
@@ -164,6 +189,18 @@ export default function AddressesScreen() {
       </div>
 
       <BookSyncControl book={current} onPulled={reload} onBookDeleted={reloadBooks} />
+
+      {exportStatus && exportStatus.path && (
+        <div style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 13 }}>
+          Exported {exportStatus.count} address{exportStatus.count === 1 ? '' : 'es'} to{' '}
+          <span className="address-text">{exportStatus.path}</span>
+        </div>
+      )}
+      {exportStatus && exportStatus.error && (
+        <div style={{ color: 'var(--error)', marginBottom: 12, fontSize: 13 }}>
+          Export failed: {exportStatus.error}
+        </div>
+      )}
 
       {showImport && (
         <ImportBookPanel onCancel={closeBookPrompts} onImported={handleImported} />

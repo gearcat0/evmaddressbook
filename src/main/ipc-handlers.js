@@ -1,7 +1,9 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron'
+import { ipcMain, dialog, app, BrowserWindow } from 'electron'
+import path from 'path'
+import fs from 'fs'
 import { IPC, CHAINLIST_RPCS_URL, debug } from './constants'
 import { normalizeAddress, addressKey } from '../shared/address-validator'
-import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, loadDeletions, saveDeletions, mergeBuiltinChains } from './data-store'
+import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, loadDeletions, saveDeletions, mergeBuiltinChains, exportFileName } from './data-store'
 import { providers, fetchChainlist } from './providers/provider-registry'
 import { scanAddress } from './chain-scanner'
 import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
@@ -112,6 +114,23 @@ export function registerIpcHandlers() {
       }
     }
     return scanAddress(address, sender, null, book)
+  })
+
+  ipcMain.handle(IPC.ADDRESSES_EXPORT, async (_event, book) => {
+    const addresses = loadAddresses(book)
+    const win = BrowserWindow.getFocusedWindow()
+    const options = {
+      title: 'Export address book',
+      defaultPath: path.join(app.getPath('downloads'), exportFileName(book)),
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    }
+    const result = win
+      ? await dialog.showSaveDialog(win, options)
+      : await dialog.showSaveDialog(options)
+    if (result.canceled || !result.filePath) return { canceled: true }
+    fs.writeFileSync(result.filePath, JSON.stringify(addresses, null, 2) + '\n', 'utf-8')
+    debug('Exported book', book || 'Default', 'to', result.filePath)
+    return { path: result.filePath, count: addresses.length }
   })
 
   ipcMain.handle(IPC.BOOKS_LIST, () => {
