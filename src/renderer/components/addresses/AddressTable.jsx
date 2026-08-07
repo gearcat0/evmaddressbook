@@ -29,6 +29,7 @@ export default function AddressTable({ addresses, chains, onUpdate, onDelete, on
               <th onClick={() => toggleSort('description')}>
                 Description<span className="sort-indicator">{sortIndicator('description')}</span>
               </th>
+              <th>Tags</th>
               <th>Active Chains</th>
               <th>Actions</th>
             </tr>
@@ -43,6 +44,7 @@ export default function AddressTable({ addresses, chains, onUpdate, onDelete, on
                 onDelete={onDelete}
                 onScan={onScan}
                 scanState={scanState?.address && addressKey(scanState.address) === addressKey(entry.address) ? scanState : null}
+                onTagClick={setFilter}
               />
             ))}
           </tbody>

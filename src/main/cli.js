@@ -49,7 +49,7 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    return writeStdout('1.6.1\n')
+    return writeStdout('1.7.0\n')
   }
 
   if (book !== null && !bookExists(book)) {
@@ -59,7 +59,21 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--addresses')) {
-    return printJson(loadAddresses(book))
+    let addresses = loadAddresses(book)
+    const tagIdx = args.indexOf('--tag')
+    if (tagIdx !== -1) {
+      const tag = args[tagIdx + 1]
+      if (!tag || tag.startsWith('--')) {
+        console.error('Usage: evmaddressbook --addresses --tag <tag>')
+        process.exitCode = 1
+        return true
+      }
+      const wanted = tag.toLowerCase()
+      addresses = addresses.filter(a =>
+        Array.isArray(a.tags) && a.tags.some(t => String(t).toLowerCase() === wanted)
+      )
+    }
+    return printJson(addresses)
   }
 
   if (args.includes('--chains')) {
@@ -179,10 +193,11 @@ function usageText() {
 Options:
   --rescan                    Re-scan all addresses in the address book
   --scan <address> [chainId]  Scan address for chain activity and exit
-                              (chainId may be numeric or bitcoin|solana|tron;
-                              EVM, Bitcoin, Solana, and Tron addresses supported)
+                              (chainId may be numeric or a family id like
+                              bitcoin|solana|tron|cardano|xrp|dogecoin|zcash|monero)
   --abi <address> <chainId>   Print contract ABI as JSON and exit (EVM chains only)
   --addresses                 Print all addresses as JSON and exit
+  --addresses --tag <tag>     Print only addresses carrying the given tag
   --chains                    Print all chains as JSON and exit
   --list-books                Print all address book names as JSON and exit
   --book <name>               Operate on the named address book (default: Default)

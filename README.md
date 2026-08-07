@@ -12,6 +12,7 @@ A desktop application for managing crypto addresses and monitoring their on-chai
 
 - **Address Management** — Add, edit, and delete addresses with descriptions; the chain family (EVM, Bitcoin, Solana, Tron, Cardano, XRP, Dogecoin, Zcash, Monero) is auto-detected from the address format
 - **Multiple Address Books** — Organize addresses into separate books; switch between them, create new ones, and delete them (the built-in "Default" book cannot be deleted)
+- **Tags** — Attach free-form tags to addresses; click a tag to filter the table, or filter from the CLI with `--addresses --tag <tag>`. Tags sync two-way through Anytype (an `evm_tags` property is added to the space automatically; local edits win on conflict)
 - **Multi-Chain Scanning** — Detect activity across all Etherscan-supported EVM chains, plus Bitcoin (mempool.space), Solana (RPC), Tron (TronGrid), Cardano (Koios), XRP (XRPL cluster), Dogecoin (Blockcypher), and Zcash transparent addresses (3xpl)
 - **Privacy-Chain Aware** — Monero addresses and Zcash shielded addresses are validated and tracked but marked Private: their activity is not publicly visible by design, so no scanning is attempted
 - **Multiple Data Providers** — Etherscan, direct JSON-RPC, Routescan, Blockscout, and Sourcify with automatic per-capability fallback; works without any API key

@@ -1,4 +1,5 @@
 import { normalizeAddress, addressKey } from '../shared/address-validator'
+import { normalizeTags } from '../shared/tags'
 import { anytypeClient } from './anytype-client'
 import { loadAddresses, saveAddresses, loadChains, loadSettings, saveSettings, createBook, deleteBook, loadDeletions, saveDeletions, DEFAULT_BOOK } from './data-store'
 import { debug } from './constants'
@@ -8,8 +9,10 @@ const TYPE_NAME = 'Address'
 const ADDRESS_PROPERTIES = [
   { key: 'evm_address', name: 'Address', format: 'text' },
   { key: 'evm_chains', name: 'Active Chains', format: 'text' },
-  { key: 'evm_last_scanned', name: 'Last Scanned', format: 'date' }
+  { key: 'evm_last_scanned', name: 'Last Scanned', format: 'date' },
+  { key: 'evm_tags', name: 'Tags', format: 'text' }
 ]
+const TAGS_PROPERTY = ADDRESS_PROPERTIES.find(p => p.key === 'evm_tags')
 
 // A type key is reserved forever once used, even after the type is deleted.
 // Using a fixed key therefore collides, and the omit-key fallback derives a
@@ -52,13 +55,63 @@ function chainsString(entry, chainNameOf) {
   return Object.keys(entry.activeChains || {}).map(chainNameOf).join(', ')
 }
 
-function buildProperties(entry, chainsStr) {
+export function tagsString(tags) {
+  return (tags || []).join(', ')
+}
+
+function buildProperties(entry, chainsStr, includeTags) {
   const props = [
     { key: 'evm_address', text: entry.address },
     { key: 'evm_chains', text: chainsStr }
   ]
   if (entry.lastScanned) props.push({ key: 'evm_last_scanned', date: entry.lastScanned })
+  if (includeTags) props.push({ key: 'evm_tags', text: tagsString(entry.tags) })
   return props
+}
+
+// Spaces already checked this session for the evm_tags property, so idle polls
+// don't re-list properties every 10s. Value: true = property usable.
+const tagsPropertyChecked = new Map()
+
+// Make sure the evm_tags property exists in the space (types created before
+// the tags feature lack it). Returns false when the property can't be ensured
+// (e.g. an older Anytype without the properties API) — tags are then simply
+// left out of the sync instead of failing it.
+async function ensureTagsProperty(spaceId, typeKey) {
+  if (tagsPropertyChecked.has(spaceId)) return tagsPropertyChecked.get(spaceId)
+  let usable = false
+  try {
+    const properties = await anytypeClient.listProperties(spaceId)
+    if (properties.some(p => p.key === TAGS_PROPERTY.key)) {
+      usable = true
+    } else {
+      await anytypeClient.createProperty(spaceId, TAGS_PROPERTY)
+      debug('Created evm_tags property in space', spaceId)
+      usable = true
+    }
+    // Best effort: also attach the property to the Address type so it shows in
+    // the Anytype UI. Failure here doesn't affect object-level sync.
+    try {
+      const types = await anytypeClient.listTypes(spaceId)
+      const type = types.find(t => t.key === typeKey)
+      const typeProps = (type && type.properties) || []
+      if (type && !typeProps.some(p => p.key === TAGS_PROPERTY.key)) {
+        await anytypeClient.updateType(spaceId, type.id, {
+          properties: [
+            ...typeProps.map(p => ({ key: p.key, name: p.name, format: p.format })),
+            TAGS_PROPERTY
+          ]
+        })
+        debug('Added evm_tags to Address type in space', spaceId)
+      }
+    } catch (err) {
+      debug('Could not add evm_tags to the Address type:', err.message)
+    }
+  } catch (err) {
+    debug('evm_tags property unavailable, syncing without tags:', err.message)
+  }
+  tagsPropertyChecked.set(spaceId, usable)
+  return usable
 }
 
 // Compare dates at second granularity so re-serialization differences (e.g.
@@ -86,7 +139,8 @@ function toMember(o) {
     name: o.name || '',
     address: propValue(o, 'evm_address'),
     chains: propValue(o, 'evm_chains'),
-    lastScanned: propValue(o, 'evm_last_scanned')
+    lastScanned: propValue(o, 'evm_last_scanned'),
+    tags: propValue(o, 'evm_tags')
   }
 }
 
@@ -163,16 +217,38 @@ function remoteToEntry(member) {
   let family
   try { ({ address, family } = normalizeAddress(member.address)) } catch {}
   const desc = remoteDescription(member, address)
+  const tags = normalizeTags(member.tags)
   const entry = {
     address,
     description: desc,
+    tags,
     activeChains: {},
     lastScanned: null,
     anytypeObjectId: member.id,
-    anytypeName: desc // baseline: the description as last reconciled with Anytype
+    anytypeName: desc, // baseline: the description as last reconciled with Anytype
+    anytypeTags: tagsString(tags) // baseline: tags as last reconciled with Anytype
   }
   if (family) entry.family = family
   return entry
+}
+
+// Reconcile one entry's tags against the remote evm_tags text, mirroring the
+// description baseline logic: a local edit wins (it gets pushed later); an
+// untouched local side adopts remote edits. An EMPTY remote value never
+// clobbers local tags — it is indistinguishable from the property simply not
+// existing yet on objects that predate the tags feature.
+// Mutates entry; returns true when the entry changed. Exported for tests.
+export function reconcileTags(entry, remoteTagsText) {
+  const localStr = tagsString(entry.tags)
+  if (entry.anytypeTags == null) entry.anytypeTags = localStr
+  const canonRemote = tagsString(normalizeTags(remoteTagsText))
+  const localEdited = localStr !== entry.anytypeTags
+  if (!localEdited && canonRemote !== '' && canonRemote !== localStr) {
+    entry.tags = normalizeTags(remoteTagsText)
+    entry.anytypeTags = tagsString(entry.tags)
+    return true
+  }
+  return false
 }
 
 // Serialize syncBook calls per book so the manual button and the background
@@ -242,6 +318,7 @@ async function doSyncBook(book) {
   }
 
   let typeKey = await ensureAddressType(spaceId, state)
+  const includeTags = await ensureTagsProperty(spaceId, typeKey)
 
   // Create an address object, self-healing if the resolved type is corrupted
   // (some types can return 500 on object creation): make a fresh type and retry.
@@ -378,6 +455,9 @@ async function doSyncBook(book) {
         entry.anytypeName = remoteDesc
         localChanged = true
       }
+      if (includeTags && reconcileTags(entry, member.tags)) {
+        localChanged = true
+      }
     }
 
     const objectId = entry.anytypeObjectId || (member && member.id) || null
@@ -385,13 +465,20 @@ async function doSyncBook(book) {
     const name = entry.description || entry.address
 
     // chains/lastScanned are local-derived scan data: always pushed, never pulled.
+    // Tags compare normalization-insensitively so remote formatting ("a,b" vs
+    // "a, b") doesn't cause endless re-pushes.
     const inSync = member &&
       member.name === name &&
       member.chains === chainsStr &&
-      sameDate(member.lastScanned, entry.lastScanned)
+      sameDate(member.lastScanned, entry.lastScanned) &&
+      (!includeTags || tagsString(normalizeTags(member.tags)) === tagsString(entry.tags))
     if (inSync) {
       if (entry.anytypeName !== (entry.description || '')) {
         entry.anytypeName = entry.description || ''
+        localChanged = true
+      }
+      if (includeTags && entry.anytypeTags !== tagsString(entry.tags)) {
+        entry.anytypeTags = tagsString(entry.tags)
         localChanged = true
       }
       // Object exists but isn't a visible member (lag / confirmed via getObject):
@@ -400,13 +487,17 @@ async function doSyncBook(book) {
       continue
     }
 
-    const properties = buildProperties(entry, chainsStr)
+    const properties = buildProperties(entry, chainsStr, includeTags)
 
     if (objectId) {
       try {
         await anytypeClient.updateObject(spaceId, objectId, { name, properties })
         if (entry.anytypeName !== (entry.description || '')) {
           entry.anytypeName = entry.description || ''
+          localChanged = true
+        }
+        if (includeTags && entry.anytypeTags !== tagsString(entry.tags)) {
+          entry.anytypeTags = tagsString(entry.tags)
           localChanged = true
         }
         // Re-add to the collection if it isn't a visible member (lag / address link).
@@ -426,6 +517,7 @@ async function doSyncBook(book) {
     const obj = await createAddressObject({ name, properties })
     entry.anytypeObjectId = obj.id
     entry.anytypeName = entry.description || ''
+    if (includeTags) entry.anytypeTags = tagsString(entry.tags)
     newObjectIds.push(obj.id)
     localChanged = true
     created++

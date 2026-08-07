@@ -71,6 +71,26 @@ class AnytypeClient {
     return data && data.type
   }
 
+  async getType(spaceId, typeId) {
+    const data = await this.request('GET', `/spaces/${spaceId}/types/${typeId}`)
+    return data && data.type
+  }
+
+  async updateType(spaceId, typeId, body) {
+    const data = await this.request('PATCH', `/spaces/${spaceId}/types/${typeId}`, body)
+    return data && data.type
+  }
+
+  async listProperties(spaceId) {
+    const data = await this.request('GET', `/spaces/${spaceId}/properties?limit=200`)
+    return (data && data.data) || []
+  }
+
+  async createProperty(spaceId, body) {
+    const data = await this.request('POST', `/spaces/${spaceId}/properties`, body)
+    return data && data.property
+  }
+
   async createObject(spaceId, body) {
     const data = await this.request('POST', `/spaces/${spaceId}/objects`, body)
     return data && data.object

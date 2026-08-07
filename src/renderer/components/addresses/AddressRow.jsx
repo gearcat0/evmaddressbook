@@ -14,11 +14,11 @@ function ScanIcon({ entry }) {
   return <span className="scan-icon scan-icon-ok" title="Last scan completed successfully">{'✓'}</span>
 }
 
-export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, scanState }) {
+export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, scanState, onTagClick }) {
   const [editing, setEditing] = useState(false)
 
-  const handleUpdate = async ({ description }) => {
-    await onUpdate(entry.address, description)
+  const handleUpdate = async ({ description, tags }) => {
+    await onUpdate(entry.address, description, tags)
     setEditing(false)
   }
 
@@ -27,7 +27,7 @@ export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, 
   if (editing) {
     return (
       <tr>
-        <td colSpan={4}>
+        <td colSpan={5}>
           <AddressForm
             initial={entry}
             onSubmit={handleUpdate}
@@ -38,12 +38,33 @@ export default function AddressRow({ entry, chains, onUpdate, onDelete, onScan, 
     )
   }
 
+  const tags = entry.tags || []
+
   return (
     <tr>
       <td>
         <span className="address-text">{entry.address}</span>
       </td>
       <td>{entry.description || <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+      <td>
+        {tags.length > 0 ? (
+          <div className="tag-chips">
+            {tags.map(tag => (
+              <button
+                key={tag}
+                type="button"
+                className="tag-chip"
+                title={`Filter by "${tag}"`}
+                onClick={() => onTagClick && onTagClick(tag)}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span style={{ color: 'var(--text-muted)' }}>—</span>
+        )}
+      </td>
       <td>
         {isScanning ? (
           <div className="scan-progress-wrapper">

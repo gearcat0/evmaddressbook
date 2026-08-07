@@ -67,8 +67,8 @@ export default function AddressesScreen() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [newBookName, confirmDelete, showImport, showForm])
 
-  const handleAdd = async ({ address, description }) => {
-    await add(address, description)
+  const handleAdd = async ({ address, description, tags }) => {
+    await add(address, description, tags)
     setShowForm(false)
   }
 

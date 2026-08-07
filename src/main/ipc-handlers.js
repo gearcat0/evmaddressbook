@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import { IPC, CHAINLIST_RPCS_URL, debug } from './constants'
 import { normalizeAddress, addressKey } from '../shared/address-validator'
+import { normalizeTags } from '../shared/tags'
 import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, loadDeletions, saveDeletions, mergeBuiltinChains, exportFileName } from './data-store'
 import { providers, fetchChainlist } from './providers/provider-registry'
 import { scanAddress } from './chain-scanner'
@@ -49,7 +50,7 @@ export function registerIpcHandlers() {
 
   // Address mutations are serialized per book with sync so the background poll
   // can't race them (resurrect a just-deleted entry / lose an edit).
-  ipcMain.handle(IPC.ADDRESSES_ADD, (_event, { address, description, book }) => {
+  ipcMain.handle(IPC.ADDRESSES_ADD, (_event, { address, description, tags, book }) => {
     const { address: canonical, family } = normalizeAddress(address)
     return withBookLock(book, () => {
       const addresses = loadAddresses(book)
@@ -60,6 +61,7 @@ export function registerIpcHandlers() {
         address: canonical,
         family,
         description: description || '',
+        tags: normalizeTags(tags),
         activeChains: {},
         lastScanned: null
       }
@@ -70,12 +72,13 @@ export function registerIpcHandlers() {
     })
   })
 
-  ipcMain.handle(IPC.ADDRESSES_UPDATE, (_event, { address, description, book }) => {
+  ipcMain.handle(IPC.ADDRESSES_UPDATE, (_event, { address, description, tags, book }) => {
     return withBookLock(book, () => {
       const addresses = loadAddresses(book)
       const idx = addresses.findIndex(a => addressKey(a.address) === addressKey(address))
       if (idx === -1) throw new Error('Address not found')
       if (description !== undefined) addresses[idx].description = description
+      if (tags !== undefined) addresses[idx].tags = normalizeTags(tags)
       saveAddresses(addresses, book)
       debug('Updated address:', address)
       return addresses[idx]

@@ -21,14 +21,14 @@ export default function useAddresses(book) {
 
   useEffect(() => { load() }, [load])
 
-  const add = useCallback(async (address, description) => {
-    const entry = await window.api.addAddress({ address, description, book })
+  const add = useCallback(async (address, description, tags) => {
+    const entry = await window.api.addAddress({ address, description, tags, book })
     setAddresses(prev => [...prev, entry])
     return entry
   }, [book])
 
-  const update = useCallback(async (address, description) => {
-    const entry = await window.api.updateAddress({ address, description, book })
+  const update = useCallback(async (address, description, tags) => {
+    const entry = await window.api.updateAddress({ address, description, tags, book })
     setAddresses(prev => prev.map(a =>
       addressKey(a.address) === addressKey(address) ? entry : a
     ))

@@ -237,6 +237,29 @@ a.chain-badge:hover {
   background: var(--bg-hover);
 }
 
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  padding: 1px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tag-chip:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 .chain-badge img {
   width: 14px;
   height: 14px;

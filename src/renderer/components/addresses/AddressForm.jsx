@@ -17,6 +17,7 @@ const FAMILY_LABELS = {
 export default function AddressForm({ onSubmit, onCancel, initial }) {
   const [address, setAddress] = useState(initial?.address || '')
   const [description, setDescription] = useState(initial?.description || '')
+  const [tags, setTags] = useState((initial?.tags || []).join(', '))
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -41,11 +42,13 @@ export default function AddressForm({ onSubmit, onCancel, initial }) {
     try {
       await onSubmit({
         address: isEdit ? initial.address : trimmed,
-        description: description.trim()
+        description: description.trim(),
+        tags: tags
       })
       if (!isEdit) {
         setAddress('')
         setDescription('')
+        setTags('')
       }
     } catch (err) {
       setError(err.message || 'Failed to save address')
@@ -82,6 +85,16 @@ export default function AddressForm({ onSubmit, onCancel, initial }) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
+              disabled={submitting}
+            />
+          </Field>
+        </div>
+        <div style={{ flex: 1 }}>
+          <Field label="Tags">
+            <Input
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="Comma-separated, e.g. exchange, defi"
               disabled={submitting}
             />
           </Field>
