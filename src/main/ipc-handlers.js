@@ -5,7 +5,7 @@ import { IPC, CHAINLIST_RPCS_URL, debug } from './constants'
 import { normalizeAddress, addressKey } from '../shared/address-validator'
 import { normalizeTags } from '../shared/tags'
 import { loadAddresses, saveAddresses, loadChains, saveChains, loadSettings, saveSettings, getDataDir, listBooks, createBook, loadDeletions, saveDeletions, mergeBuiltinChains, exportFileName } from './data-store'
-import { providers, fetchChainlist } from './providers/provider-registry'
+import { providers, fetchChainlist, getFamilyProvider } from './providers/provider-registry'
 import { scanAddress } from './chain-scanner'
 import { fetchAndStoreIcons, getIconPath } from './icon-fetcher'
 import { anytypeClient } from './anytype-client'
@@ -134,6 +134,71 @@ export function registerIpcHandlers() {
     fs.writeFileSync(result.filePath, JSON.stringify(addresses, null, 2) + '\n', 'utf-8')
     debug('Exported book', book || 'Default', 'to', result.filePath)
     return { path: result.filePath, count: addresses.length }
+  })
+
+  // Bulk import of already-derived/pasted addresses. Existing entries are left
+  // untouched (counted as skipped) so an import can safely be repeated.
+  ipcMain.handle(IPC.ADDRESSES_IMPORT, (_event, { entries, book }) => {
+    return withBookLock(book, () => {
+      const addresses = loadAddresses(book)
+      const seen = new Set(addresses.map(a => addressKey(a.address)))
+      let added = 0
+      let skipped = 0
+      const errors = []
+
+      for (const item of entries || []) {
+        let canonical, family
+        try {
+          ({ address: canonical, family } = normalizeAddress(item.address))
+        } catch (err) {
+          errors.push(`${item.address}: ${err.message}`)
+          continue
+        }
+        if (seen.has(addressKey(canonical))) {
+          skipped++
+          continue
+        }
+        seen.add(addressKey(canonical))
+        addresses.push({
+          address: canonical,
+          family,
+          description: item.description || '',
+          tags: normalizeTags(item.tags),
+          activeChains: {},
+          lastScanned: null
+        })
+        added++
+      }
+
+      if (added > 0) saveAddresses(addresses, book)
+      debug(`Imported ${added} address(es) into "${book || 'Default'}", ${skipped} already present`)
+      return { added, skipped, errors }
+    })
+  })
+
+  // Activity probe used by the import preview to highlight used addresses.
+  // Checks one representative chain per family to keep the cost predictable.
+  ipcMain.handle(IPC.ADDRESSES_CHECK_ACTIVITY, async (_event, { addresses, family }) => {
+    const chains = loadChains()
+    const chain = family === 'evm'
+      ? chains.find(c => String(c.chainid) === '1')
+      : chains.find(c => (c.family || 'evm') === family)
+    if (!chain) return (addresses || []).map(address => ({ address, active: null }))
+
+    const familyProvider = getFamilyProvider(family)
+    const results = []
+    for (const address of addresses || []) {
+      try {
+        const active = family === 'evm'
+          ? await providers.checkActivity(chain.chainid, address)
+          : (await familyProvider.checkActivity(chain, address)).active
+        results.push({ address, active })
+      } catch (err) {
+        debug('Activity probe failed for', address, err.message)
+        results.push({ address, active: null, error: err.message })
+      }
+    }
+    return results
   })
 
   ipcMain.handle(IPC.BOOKS_LIST, () => {

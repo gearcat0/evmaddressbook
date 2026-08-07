@@ -8,6 +8,7 @@ import AddressForm from './AddressForm'
 import AddressTable from './AddressTable'
 import BookSyncControl from './BookSyncControl'
 import ImportBookPanel from './ImportBookPanel'
+import ImportXpubPanel from './ImportXpubPanel'
 
 export default function AddressesScreen() {
   const { books, current, setCurrent, create, remove: removeBook, reload: reloadBooks, DEFAULT_BOOK } = useBooks()
@@ -22,7 +23,9 @@ export default function AddressesScreen() {
   const [newBookName, setNewBookName] = useState(null) // null = hidden, string = shown
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [showXpubImport, setShowXpubImport] = useState(false)
   const [bookError, setBookError] = useState('')
+  const [importStatus, setImportStatus] = useState(null)
   const [exportStatus, setExportStatus] = useState(null) // null | {exporting} | {path, count} | {error}
 
   useEffect(() => {
@@ -57,7 +60,7 @@ export default function AddressesScreen() {
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key !== 'Escape') return
-      if (newBookName !== null || confirmDelete || showImport) {
+      if (newBookName !== null || confirmDelete || showImport || showXpubImport) {
         closeBookPrompts()
       } else if (showForm) {
         setShowForm(false)
@@ -65,7 +68,7 @@ export default function AddressesScreen() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [newBookName, confirmDelete, showImport, showForm])
+  }, [newBookName, confirmDelete, showImport, showXpubImport, showForm])
 
   const handleAdd = async ({ address, description, tags }) => {
     await add(address, description, tags)
@@ -90,7 +93,15 @@ export default function AddressesScreen() {
     setNewBookName(null)
     setConfirmDelete(false)
     setShowImport(false)
+    setShowXpubImport(false)
     setBookError('')
+  }
+
+  const handleXpubImported = async (result) => {
+    closeBookPrompts()
+    await reload()
+    setImportStatus(result)
+    setTimeout(() => setImportStatus(null), 8000)
   }
 
   const handleImported = async (book) => {
@@ -167,6 +178,14 @@ export default function AddressesScreen() {
           <Button
             variant="secondary"
             size="sm"
+            title="Import watch-only addresses derived from an extended public key"
+            onClick={() => { closeBookPrompts(); setShowForm(false); setShowXpubImport(true) }}
+          >
+            Import xpub
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={!!(exportStatus && exportStatus.exporting)}
             title="Save this address book as a JSON file"
             onClick={handleExport}
@@ -204,6 +223,19 @@ export default function AddressesScreen() {
 
       {showImport && (
         <ImportBookPanel onCancel={closeBookPrompts} onImported={handleImported} />
+      )}
+
+      {showXpubImport && (
+        <ImportXpubPanel book={current} onCancel={closeBookPrompts} onImported={handleXpubImported} />
+      )}
+
+      {importStatus && (
+        <div style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 13 }}>
+          Imported {importStatus.added} address{importStatus.added === 1 ? '' : 'es'}
+          {importStatus.skipped > 0 && `, skipped ${importStatus.skipped} already present`}
+          {importStatus.errors && importStatus.errors.length > 0 &&
+            `, ${importStatus.errors.length} failed`}
+        </div>
       )}
 
       {newBookName !== null && (

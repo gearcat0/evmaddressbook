@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('api', {
   deleteAddress: (data) => ipcRenderer.invoke('addresses:delete', data),
   scanAddress: (data) => ipcRenderer.invoke('addresses:scan', data),
   exportAddresses: (book) => ipcRenderer.invoke('addresses:export', book),
+  importAddresses: (data) => ipcRenderer.invoke('addresses:import', data),
+  checkAddressActivity: (data) => ipcRenderer.invoke('addresses:checkActivity', data),
 
   // Address books
   listBooks: () => ipcRenderer.invoke('books:list'),
