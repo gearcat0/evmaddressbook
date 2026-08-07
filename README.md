@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/github/package-json/v/gearcat0/evmaddressbook)](https://github.com/gearcat0/evmaddressbook/blob/master/package.json)
 [![License: ISC](https://img.shields.io/badge/license-ISC-blue.svg)](#license)
 
-A desktop application for managing crypto addresses and monitoring their on-chain activity — EVM chains plus Bitcoin, Solana, Tron, Cardano, XRP, Dogecoin, Zcash, and Monero.
+A desktop application for managing crypto addresses and monitoring their on-chain activity — EVM chains plus Bitcoin, Solana, Tron, Cardano, XRP, Dogecoin, Zcash, Monero, and NEAR.
 
 ![EVM Address Book showing a 2016-entry book with Bitcoin, Solana, Tron, and EVM addresses](docs/screenshot.png)
 
@@ -14,7 +14,8 @@ A desktop application for managing crypto addresses and monitoring their on-chai
 - **Multiple Address Books** — Organize addresses into separate books; switch between them, create new ones, and delete them (the built-in "Default" book cannot be deleted)
 - **Import from xpub** — Paste an extended **public** key (xpub/ypub/zpub) to bulk-import its addresses as watch-only entries, with a preview and per-address selection. **Gap-limit discovery** walks the derivation branch (optionally including change addresses) until 20 consecutive addresses are unused — the BIP44 standard — and pre-selects only the ones with on-chain activity; progress is shown and can be stopped at any point. Supports EVM, Bitcoin (legacy/nested/native SegWit), Dogecoin, Zcash transparent, Tron, and XRP. The key is used in the window only — **never stored, synced, or sent anywhere** — and extended *private* keys (xprv/yprv/zprv) are detected and refused. Solana, Cardano, and Monero cannot be derived from a BIP32 extended key and are excluded by design.
 - **Tags** — Attach free-form tags to addresses; click a tag to filter the table, or filter from the CLI with `--addresses --tag <tag>`. Tags sync two-way through Anytype (an `evm_tags` property is added to the space automatically; local edits win on conflict)
-- **Multi-Chain Scanning** — Detect activity across all Etherscan-supported EVM chains, plus Bitcoin (mempool.space), Solana (RPC), Tron (TronGrid), Cardano (Koios), XRP (XRPL cluster), Dogecoin (Blockcypher), and Zcash transparent addresses (3xpl)
+- **Multi-Chain Scanning** — Detect activity across all Etherscan-supported EVM chains, plus Bitcoin (mempool.space), Solana (RPC), Tron (TronGrid), Cardano (Koios), XRP (XRPL cluster), Dogecoin (Blockcypher), Zcash transparent addresses (3xpl), and NEAR (NEAR RPC)
+- **NEAR accounts** — Named accounts under `.near` and 64-character implicit accounts. Because NEAR account ids carry no checksum, only these two unambiguous forms are accepted; bare top-level names (e.g. `aurora`) are not, so that ordinary typos can still be rejected
 - **Privacy-Chain Aware** — Monero addresses and Zcash shielded addresses are validated and tracked but marked Private: their activity is not publicly visible by design, so no scanning is attempted
 - **Multiple Data Providers** — Etherscan, direct JSON-RPC, Routescan, Blockscout, and Sourcify with automatic per-capability fallback; works without any API key
 - **Address Type Discovery** — Identify whether each address is an EOA, contract, transparent proxy, or Gnosis Safe (with implementation address, Safe owners/threshold, contract creator); Bitcoin script types (P2PKH/P2SH/P2WPKH/P2WSH/P2TR), Solana wallets/programs/token accounts, and Tron wallets/contracts, with balances
@@ -32,7 +33,7 @@ A desktop application for managing crypto addresses and monitoring their on-chai
 - **vitest** — Test runner
 - **ethers.js** — EIP-55/base58 address handling and ABI decoding for Safe/proxy resolution
 - **Etherscan API v2, JSON-RPC, Routescan, Blockscout, Sourcify** — EVM activity detection and contract metadata, with automatic fallback
-- **mempool.space, Solana RPC, TronGrid, Koios, XRPL, Blockcypher, 3xpl** — Non-EVM chain scanning
+- **mempool.space, Solana RPC, TronGrid, Koios, XRPL, Blockcypher, 3xpl, NEAR RPC** — Non-EVM chain scanning
 
 ## Getting Started
 
@@ -183,6 +184,7 @@ When scanning, each address on each active chain is classified:
 | Dogecoin | **Wallet** | Script type, tx count, balance |
 | Zcash | **Wallet / Private** | Script type or shielded pool, tx count, balance (transparent only) |
 | Monero | **Private** | Address subtype (standard/subaddress/integrated); activity not publicly visible |
+| NEAR | **Wallet / Contract** | Account type (named/implicit), balance |
 
 ## License
 

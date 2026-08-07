@@ -24,7 +24,23 @@ function getTypeLabel(info) {
   return 'Contract'
 }
 
+// yoctoNEAR (1e-24) exceeds JS number precision, so it arrives as a string and
+// is reduced with BigInt rather than division.
+function formatYocto(raw) {
+  let value
+  try {
+    value = BigInt(raw)
+  } catch {
+    return null
+  }
+  const unit = 10n ** 24n
+  const whole = value / unit
+  const frac = (value % unit) * 10000n / unit // four decimal places
+  return `${whole}.${String(frac).padStart(4, '0')} NEAR`
+}
+
 function formatBalance(info) {
+  if (typeof info.balanceYocto === 'string') return formatYocto(info.balanceYocto)
   if (typeof info.balanceSats === 'number') return `${info.balanceSats / 1e8} BTC`
   if (typeof info.balanceLamports === 'number') return `${info.balanceLamports / 1e9} SOL`
   if (typeof info.balanceSun === 'number') return `${info.balanceSun / 1e6} TRX`
@@ -43,6 +59,7 @@ function buildTooltip(chainName, info) {
   if (info.addressType === 'private') lines.push('Activity and balance are not publicly visible')
   if (info.contractName) lines.push(`Contract: ${info.contractName}`)
   if (info.scriptType) lines.push(`Script: ${info.scriptType}`)
+  if (info.accountType) lines.push(`Account: ${info.accountType}`)
   if (info.subtype) lines.push(`Subtype: ${info.subtype}`)
   if (info.pool) lines.push(`Pool: ${info.pool}`)
   if (info.era) lines.push(`Era: ${info.era}`)

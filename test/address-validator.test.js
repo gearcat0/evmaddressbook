@@ -22,6 +22,7 @@ const ZEC_T3 = 't3aPMe94jMKyrgkbH5SSukimvdMFJ59EFhP'
 const ZEC_SAPLING = 'zs1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75c8v35z' // librustzcash vector
 const XMR_STANDARD = '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A'
 const XMR_SUBADDRESS = '888tNkZrPN6JsEgekjMnABU4TBzc2Dt29EPAvkRxbANsAnjyPbb3iQ1YBRk1UXcdRsiKc9dhwMVgN5S9cQUiyoogDavup3H'
+const NEAR_IMPLICIT = '98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6de'
 
 describe('normalizeAddress — accepted families and canonical forms', () => {
   it('checksums EVM addresses to EIP-55', () => {
@@ -85,6 +86,18 @@ describe('normalizeAddress — accepted families and canonical forms', () => {
     expect(normalizeAddress(ZEC_SAPLING)).toEqual({ family: 'zcash', address: ZEC_SAPLING, subtype: 'sapling' })
   })
 
+  it('classifies NEAR named and implicit accounts', () => {
+    expect(normalizeAddress('root.near')).toEqual({ family: 'near', address: 'root.near', subtype: 'named' })
+    expect(normalizeAddress('sub.alice.near').subtype).toBe('named')
+    expect(normalizeAddress('a_b-c.near').family).toBe('near')
+    expect(normalizeAddress(NEAR_IMPLICIT)).toEqual({ family: 'near', address: NEAR_IMPLICIT, subtype: 'implicit' })
+  })
+
+  it('folds NEAR case, since account ids are lowercase by specification', () => {
+    expect(normalizeAddress('Root.NEAR').address).toBe('root.near')
+    expect(normalizeAddress(NEAR_IMPLICIT.toUpperCase()).address).toBe(NEAR_IMPLICIT)
+  })
+
   it('classifies Monero standard and subaddresses via the keccak checksum', () => {
     expect(normalizeAddress(XMR_STANDARD)).toEqual({ family: 'monero', address: XMR_STANDARD, subtype: 'standard' })
     expect(normalizeAddress(XMR_SUBADDRESS)).toEqual({ family: 'monero', address: XMR_SUBADDRESS, subtype: 'subaddress' })
@@ -111,7 +124,19 @@ describe('normalizeAddress — rejections', () => {
     ['Zcash t1 corrupted char', 't1RyCw14wRXrh3mp21uxgr9ynjem7cNUkMI'],
     ['Zcash Sapling corrupted char', 'zs1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6hlup5lusxle75c8v35q'],
     ['Monero corrupted char', '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3B'],
-    ['Monero wrong length', '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3']
+    ['Monero wrong length', '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3'],
+    // NEAR named accounts have no checksum, so the grammar alone must never be
+    // enough — these all satisfy the account-id rules but are not addresses.
+    ['bare word that fits the NEAR grammar', 'nope'],
+    ['hyphenated text that fits the NEAR grammar', 'not-an-address'],
+    ['a domain name', 'example.com'],
+    ['NEAR-looking id under the wrong TLD', 'alice.testnet'],
+    ['NEAR id with a trailing separator', 'alice-.near'],
+    ['NEAR id with consecutive separators', 'alice..near'],
+    ['NEAR id starting with a separator', '-alice.near'],
+    ['bare .near', '.near'],
+    ['NEAR implicit account one char short', '98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6d'],
+    ['NEAR implicit account with a non-hex char', '98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6dg']
   ]
 
   for (const [label, input] of bad) {

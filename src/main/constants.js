@@ -54,6 +54,12 @@ export const CARDANO_RATE_LIMIT_MS = 1000
 export const XRP_RATE_LIMIT_MS = 500
 export const DOGECOIN_RATE_LIMIT_MS = 2000
 export const ZCASH_RATE_LIMIT_MS = 2000
+export const NEAR_RATE_LIMIT_MS = 500
+
+export const NEAR_RPC_URL = 'https://rpc.mainnet.near.org'
+// A NEAR account with no contract deployed reports this all-ones code hash
+// (base58 of 32 zero bytes).
+export const NEAR_EMPTY_CODE_HASH = '11111111111111111111111111111111'
 
 export const KOIOS_API_URL = 'https://api.koios.rest/api/v1'
 export const XRPL_RPC_URL = 'https://xrplcluster.com'

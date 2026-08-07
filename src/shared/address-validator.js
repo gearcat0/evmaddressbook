@@ -8,7 +8,7 @@ import { getAddress, decodeBase58, sha256, keccak256 } from 'ethers'
 // classification is by prefix/shape first and confirmed by checksum.
 
 export const SUPPORTED_FAMILIES_LABEL =
-  'EVM, Bitcoin, Solana, Tron, Cardano, XRP, Dogecoin, Zcash, Monero'
+  'EVM, Bitcoin, Solana, Tron, Cardano, XRP, Dogecoin, Zcash, Monero, NEAR'
 
 const BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 const BECH32M_CONST = 0x2bc830a3
@@ -253,6 +253,25 @@ function decodeXrp(str) {
 }
 
 // ---------------------------------------------------------------------------
+// NEAR
+//
+// NEAR is the one supported family whose named accounts carry NO checksum:
+// "alice.near" is just a string. Accepting the full account-ID grammar would
+// mean every lowercase typo ("not-an-address") validates as a NEAR account and
+// the app could no longer tell a bad address from a good one. So we accept only
+// the two forms that are self-evidently NEAR:
+//   * implicit accounts — exactly 64 lowercase hex characters (an encoded key)
+//   * named accounts under the mainnet TLD — anything ending in ".near"
+// Top-level mainnet accounts without a suffix (e.g. "aurora") are therefore not
+// recognized; that is a deliberate trade for keeping validation meaningful.
+const NEAR_ACCOUNT_ID = /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/
+const NEAR_IMPLICIT = /^[0-9a-f]{64}$/
+
+function isNearAccountId(id) {
+  return id.length >= 2 && id.length <= 64 && NEAR_ACCOUNT_ID.test(id)
+}
+
+// ---------------------------------------------------------------------------
 
 // Returns { family, address (canonical), subtype? }; throws on invalid input.
 export function normalizeAddress(input) {
@@ -278,6 +297,16 @@ export function normalizeAddress(input) {
   if (lower.startsWith('zs1')) {
     if (!decodeZcashSapling(trimmed)) throw invalid()
     return { family: 'zcash', address: lower, subtype: 'sapling' }
+  }
+
+  // NEAR — checked before the base58 families. Both forms are tightly shaped
+  // (64 hex, or an account id under ".near") so they cannot shadow another
+  // family, and equally cannot be reached by arbitrary text.
+  if (NEAR_IMPLICIT.test(lower) && isNearAccountId(lower)) {
+    return { family: 'near', address: lower, subtype: 'implicit' }
+  }
+  if (lower.endsWith('.near') && isNearAccountId(lower)) {
+    return { family: 'near', address: lower, subtype: 'named' }
   }
 
   // Cardano Byron legacy (checked before generic base58: 'Ae2…' could
@@ -348,5 +377,8 @@ export function detectFamily(input) {
 export function addressKey(address) {
   const a = String(address || '').trim()
   if (/^(0x|bc1|addr1|stake1|zs1)/i.test(a)) return a.toLowerCase()
+  // NEAR account ids are lowercase by specification; fold case so a stray
+  // capital can't create a second identity for the same account.
+  if (/\.near$/i.test(a) || /^[0-9a-f]{64}$/i.test(a)) return a.toLowerCase()
   return a
 }

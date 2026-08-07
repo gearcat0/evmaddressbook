@@ -79,6 +79,17 @@ export const BUILTIN_CHAINS = [
     enabled: true
   },
   {
+    chainid: 'near',
+    chainname: 'NEAR',
+    family: 'near',
+    blockexplorer: 'https://nearblocks.io',
+    addressUrlTemplate: 'https://nearblocks.io/address/{address}',
+    rpcurl: 'https://rpc.mainnet.near.org',
+    status: 1,
+    comment: 'Built-in non-EVM chain',
+    enabled: true
+  },
+  {
     // Monero explorers have no address pages (activity is private), so this
     // record deliberately has no blockexplorer or addressUrlTemplate.
     chainid: 'monero',

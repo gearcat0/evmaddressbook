@@ -11,7 +11,8 @@ const FAMILY_LABELS = {
   xrp: 'XRP Ledger',
   dogecoin: 'Dogecoin',
   zcash: 'Zcash',
-  monero: 'Monero'
+  monero: 'Monero',
+  near: 'NEAR'
 }
 
 export default function AddressForm({ onSubmit, onCancel, initial }) {

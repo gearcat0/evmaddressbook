@@ -164,6 +164,7 @@ describe('getFamilyProvider', () => {
     expect(getFamilyProvider('dogecoin')?.name).toBe('dogecoin')
     expect(getFamilyProvider('zcash')?.name).toBe('zcash')
     expect(getFamilyProvider('monero')?.name).toBe('monero')
+    expect(getFamilyProvider('near')?.name).toBe('near')
     expect(getFamilyProvider('evm')).toBeNull()
   })
 })

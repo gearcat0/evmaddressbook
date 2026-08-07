@@ -13,10 +13,11 @@ import { xrpProvider } from './xrp-provider'
 import { dogecoinProvider } from './dogecoin-provider'
 import { zcashProvider } from './zcash-provider'
 import { moneroProvider } from './monero-provider'
+import { nearProvider } from './near-provider'
 
 const REGISTRY = [etherscanProvider, rpcProvider, routescanProvider, blockscoutProvider, sourcifyProvider,
   bitcoinProvider, solanaProvider, tronProvider,
-  cardanoProvider, xrpProvider, dogecoinProvider, zcashProvider, moneroProvider]
+  cardanoProvider, xrpProvider, dogecoinProvider, zcashProvider, moneroProvider, nearProvider]
 
 export function registerProvider(provider) {
   REGISTRY.push(provider)

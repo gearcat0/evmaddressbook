@@ -176,7 +176,8 @@ const BUILTIN_ICON_SVGS = {
   xrp: builtinIconSvg('X', '#23292f'),
   dogecoin: builtinIconSvg('Ð', '#c2a633'),
   zcash: builtinIconSvg('Z', '#f4b728'),
-  monero: builtinIconSvg('M', '#f26822')
+  monero: builtinIconSvg('M', '#f26822'),
+  near: builtinIconSvg('N', '#00ec97')
 }
 
 function writeBuiltinIcons(iconsDir) {

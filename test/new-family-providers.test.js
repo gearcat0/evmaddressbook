@@ -4,6 +4,7 @@ import { xrpProvider } from '../src/main/providers/xrp-provider'
 import { dogecoinProvider } from '../src/main/providers/dogecoin-provider'
 import { zcashProvider } from '../src/main/providers/zcash-provider'
 import { moneroProvider } from '../src/main/providers/monero-provider'
+import { nearProvider } from '../src/main/providers/near-provider'
 import { useTempDataDir, removeDataDir, stubFetch, withFakeTimers } from './helpers'
 
 const ADA_CHAIN = { chainid: 'cardano', apiurl: 'https://api.koios.rest/api/v1' }
@@ -130,6 +131,61 @@ describe('zcash provider', () => {
     expect(active).toBe(true)
     expect(typeInfo).toEqual({ addressType: 'private', pool: 'sapling' })
     expect(calls).toHaveLength(0)
+  })
+})
+
+describe('near provider', () => {
+  const NEAR_CHAIN = { chainid: 'near', rpcurl: 'https://rpc.mainnet.near.org' }
+  const NAMED = 'root.near'
+  const EMPTY_CODE_HASH = '11111111111111111111111111111111'
+
+  // stubFetch calls handlers synchronously — an async handler would yield a
+  // promise where the response body is expected.
+  const reply = (result) => () => ({ body: { jsonrpc: '2.0', id: 1, result } })
+
+  it('reports a funded wallet with its yoctoNEAR balance kept as a string', async () => {
+    stubFetch(reply({ amount: '2860161513528539267824438625', code_hash: EMPTY_CODE_HASH }))
+    const { active, typeInfo } = await withFakeTimers(() => nearProvider.checkActivity(NEAR_CHAIN, NAMED))
+    expect(active).toBe(true)
+    expect(typeInfo).toEqual({
+      addressType: 'wallet',
+      balanceYocto: '2860161513528539267824438625',
+      accountType: 'named'
+    })
+    // The value exceeds Number.MAX_SAFE_INTEGER, so it must not be a number.
+    expect(typeof typeInfo.balanceYocto).toBe('string')
+    expect(BigInt(typeInfo.balanceYocto) > BigInt(Number.MAX_SAFE_INTEGER)).toBe(true)
+  })
+
+  it('classifies an account with deployed code as a contract', async () => {
+    stubFetch(reply({ amount: '1', code_hash: '2axCgM1hmJWemwiGH8YuhXzvzodSjfP34X4TzcLRUM76' }))
+    const { typeInfo } = await withFakeTimers(() => nearProvider.resolveType(NEAR_CHAIN, 'aurora.near'))
+    expect(typeInfo.addressType).toBe('contract')
+  })
+
+  it('labels implicit accounts', async () => {
+    const implicit = '98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6de'
+    stubFetch(reply({ amount: '9098427322681399999999', code_hash: EMPTY_CODE_HASH }))
+    const { typeInfo } = await withFakeTimers(() => nearProvider.checkActivity(NEAR_CHAIN, implicit))
+    expect(typeInfo.accountType).toBe('implicit')
+  })
+
+  it('treats UNKNOWN_ACCOUNT as clean inactivity, not an error', async () => {
+    stubFetch(() => ({
+      body: { jsonrpc: '2.0', id: 1, error: { name: 'HANDLER_ERROR', cause: { name: 'UNKNOWN_ACCOUNT' } } }
+    }))
+    const before = nearProvider.stats.errors
+    const { active } = await withFakeTimers(() => nearProvider.checkActivity(NEAR_CHAIN, 'nobody.near'))
+    expect(active).toBe(false)
+    expect(nearProvider.stats.errors).toBe(before)
+  })
+
+  it('throws on other RPC errors', async () => {
+    stubFetch(() => ({
+      body: { jsonrpc: '2.0', id: 1, error: { message: 'server overloaded', cause: { name: 'INTERNAL_ERROR' } } }
+    }))
+    await expect(withFakeTimers(() => nearProvider.checkActivity(NEAR_CHAIN, NAMED)))
+      .rejects.toThrow('server overloaded')
   })
 })
 
