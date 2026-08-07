@@ -1,4 +1,5 @@
 import React from 'react'
+import { splitMemo } from '../../../shared/address-validator'
 import ChainIcon from '../ChainIcon'
 
 const TYPE_LABELS = {
@@ -57,9 +58,17 @@ function formatBalance(info) {
   return null
 }
 
-function buildTooltip(chainName, info) {
+const MEMO_LABELS = {
+  xrp: 'Destination tag',
+  stellar: 'Memo',
+  hedera: 'Memo',
+  monero: 'Payment id'
+}
+
+function buildTooltip(chainName, info, memo, family) {
   const lines = [chainName]
-  if (!info || !info.addressType) return chainName
+  if (memo) lines.push(`${MEMO_LABELS[family] || 'Memo'}: ${memo}`)
+  if (!info || !info.addressType) return lines.join('\n')
 
   lines.push(`Type: ${TYPE_LABELS[info.addressType] || 'Contract'}`)
   if (info.addressType === 'private') lines.push('Activity and balance are not publicly visible')
@@ -98,7 +107,8 @@ export default function ChainBadges({ activeChains, chains, address, lastScanned
       name: c.chainname,
       explorer: c.blockexplorer,
       enabled: c.enabled,
-      addressUrlTemplate: c.addressUrlTemplate
+      addressUrlTemplate: c.addressUrlTemplate,
+      family: c.family
     }
   }
 
@@ -112,12 +122,14 @@ export default function ChainBadges({ activeChains, chains, address, lastScanned
       {entries.map(([chainId, info]) => {
         const chain = chainMap[chainId] || {}
         const chainName = chain.name || `Chain ${chainId}`
-        const tooltip = buildTooltip(chainName, info)
+        const tooltip = buildTooltip(chainName, info, splitMemo(address || '').memo, chain.family)
         const typeLabel = getTypeLabel(info)
-        const explorerUrl = address && chain.addressUrlTemplate
-          ? chain.addressUrlTemplate.replace('{address}', address)
-          : chain.explorer && address
-            ? `${chain.explorer.replace(/\/+$/, '')}/address/${address}`
+        // Explorers index the account, not the memo, so link to the bare form.
+        const { address: baseAddress } = splitMemo(address || '')
+        const explorerUrl = baseAddress && chain.addressUrlTemplate
+          ? chain.addressUrlTemplate.replace('{address}', baseAddress)
+          : chain.explorer && baseAddress
+            ? `${chain.explorer.replace(/\/+$/, '')}/address/${baseAddress}`
             : null
 
         const content = (

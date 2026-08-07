@@ -93,6 +93,16 @@ describe('xrp provider', () => {
     expect(xrpProvider.stats.errors).toBe(0)
   })
 
+  it('strips the destination tag before querying the ledger', async () => {
+    const calls = stubFetch(() => ({
+      body: { result: { status: 'success', account_data: { Balance: '1', Sequence: 1 } } }
+    }))
+    await withFakeTimers(() => xrpProvider.checkActivity(XRP_CHAIN, `${XRP_ADDR}#12345`))
+    const sent = JSON.parse(calls[0].opts.body)
+    expect(sent.params[0].account).toBe(XRP_ADDR)
+    expect(calls[0].opts.body).not.toContain('12345')
+  })
+
   it('throws on other XRPL errors', async () => {
     stubFetch(() => ({ body: { result: { status: 'error', error: 'invalidParams', error_message: 'bad params' } } }))
     await expect(withFakeTimers(() => xrpProvider.checkActivity(XRP_CHAIN, XRP_ADDR)))
@@ -232,6 +242,13 @@ describe('stellar provider', () => {
     })
   })
 
+  it('strips the memo from the Horizon request', async () => {
+    const calls = stubFetch(() => ({ body: { balances: [{ asset_type: 'native', balance: '1.0' }] } }))
+    await withFakeTimers(() => stellarProvider.checkActivity(CHAIN, `${ADDR}#deposit-42`))
+    expect(calls[0].url).toBe(`https://horizon.stellar.org/accounts/${ADDR}`)
+    expect(calls[0].url).not.toContain('deposit-42')
+  })
+
   it('treats an unfunded account (404) as clean inactivity', async () => {
     stubFetch(() => ({ status: 404 }))
     const before = stellarProvider.stats.errors
@@ -257,6 +274,14 @@ describe('hedera provider', () => {
     await withFakeTimers(() => hederaProvider.checkActivity(CHAIN, '0.0.123-vfmkw'))
     expect(calls[0].url).toContain('/accounts/0.0.123')
     expect(calls[0].url).not.toContain('vfmkw')
+  })
+
+  it('strips both a checksum and a memo before querying', async () => {
+    const calls = stubFetch(() => ({ body: { balance: { balance: 1 }, key: {} } }))
+    await withFakeTimers(() => hederaProvider.checkActivity(CHAIN, '0.0.123-vfmkw#invoice-9'))
+    expect(calls[0].url).toContain('/accounts/0.0.123')
+    expect(calls[0].url).not.toContain('vfmkw')
+    expect(calls[0].url).not.toContain('invoice-9')
   })
 
   it('treats a missing account (404) as clean inactivity', async () => {

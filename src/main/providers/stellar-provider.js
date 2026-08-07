@@ -1,5 +1,5 @@
 import { STELLAR_HORIZON_URL, STELLAR_RATE_LIMIT_MS, debug } from '../constants'
-import { normalizeAddress } from '../../shared/address-validator'
+import { normalizeAddress, splitMemo } from '../../shared/address-validator'
 import { RateLimiter, fetchJson } from './provider-utils'
 
 const limiter = new RateLimiter(STELLAR_RATE_LIMIT_MS)
@@ -8,7 +8,8 @@ const limiter = new RateLimiter(STELLAR_RATE_LIMIT_MS)
 async function fetchAccount(chain, address) {
   await limiter.wait()
   const base = (chain.apiurl || STELLAR_HORIZON_URL).replace(/\/+$/, '')
-  const url = `${base}/accounts/${address}`
+  // The memo routes a payment; it is not part of the account id.
+  const url = `${base}/accounts/${splitMemo(address).address}`
   debug('Stellar call:', url)
   return fetchJson(url, stellarProvider.stats, { label: 'Horizon', nullOn404: true })
 }

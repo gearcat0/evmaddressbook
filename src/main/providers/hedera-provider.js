@@ -1,4 +1,5 @@
 import { HEDERA_MIRROR_URL, HEDERA_RATE_LIMIT_MS, debug } from '../constants'
+import { splitMemo } from '../../shared/address-validator'
 import { RateLimiter, fetchJson } from './provider-utils'
 
 const limiter = new RateLimiter(HEDERA_RATE_LIMIT_MS)
@@ -6,7 +7,7 @@ const limiter = new RateLimiter(HEDERA_RATE_LIMIT_MS)
 // The mirror node wants the bare entity id, so any HIP-15 checksum suffix is
 // stripped before the request (it is a client-side integrity check only).
 function bareId(address) {
-  return String(address).split('-')[0]
+  return splitMemo(String(address)).address.split('-')[0]
 }
 
 // Returns the account, or null when it does not exist (404).

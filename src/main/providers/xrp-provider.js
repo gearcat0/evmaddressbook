@@ -1,9 +1,13 @@
 import { XRPL_RPC_URL, XRP_RATE_LIMIT_MS, debug } from '../constants'
+import { splitMemo } from '../../shared/address-validator'
 import { RateLimiter } from './provider-utils'
 
 const limiter = new RateLimiter(XRP_RATE_LIMIT_MS)
 
 async function accountInfo(chain, address) {
+  // A destination tag is a routing hint for senders, not part of the
+  // on-ledger account, so it is dropped before querying.
+  const account = splitMemo(address).address
   await limiter.wait()
   const url = chain.rpcurl || XRPL_RPC_URL
   xrpProvider.stats.calls++
@@ -11,7 +15,7 @@ async function accountInfo(chain, address) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ method: 'account_info', params: [{ account: address, ledger_index: 'validated' }] })
+    body: JSON.stringify({ method: 'account_info', params: [{ account, ledger_index: 'validated' }] })
   })
   if (!res.ok) {
     xrpProvider.stats.errors++

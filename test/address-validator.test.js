@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalizeAddress, detectFamily, addressKey } from '../src/shared/address-validator'
+import { normalizeAddress, detectFamily, addressKey, splitMemo } from '../src/shared/address-validator'
 
 const VITALIK = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
 const BTC_P2PKH = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa' // genesis
@@ -230,6 +230,56 @@ describe('detectFamily', () => {
     expect(detectFamily(XMR_STANDARD)).toBe('monero')
     expect(detectFamily('nope')).toBeNull()
     expect(detectFamily(null)).toBeNull()
+  })
+})
+
+describe('memos and destination tags', () => {
+  it('splits on the first separator only, so a memo may contain "#"', () => {
+    expect(splitMemo(`${XLM_ACCOUNT}#a#b`)).toEqual({ address: XLM_ACCOUNT, memo: 'a#b' })
+    expect(splitMemo(XRP_ADDR)).toEqual({ address: XRP_ADDR, memo: null })
+    expect(splitMemo('')).toEqual({ address: '', memo: null })
+  })
+
+  it('accepts an XRP destination tag and canonicalizes it as a number', () => {
+    expect(normalizeAddress(`${XRP_ADDR}#12345`)).toMatchObject({
+      family: 'xrp', address: `${XRP_ADDR}#12345`, memo: '12345'
+    })
+    // "007" and "7" are the same destination and must not become two entries.
+    expect(normalizeAddress(`${XRP_ADDR}#007`).address).toBe(`${XRP_ADDR}#7`)
+    expect(normalizeAddress(`${XRP_ADDR}#4294967295`).memo).toBe('4294967295')
+  })
+
+  it('accepts Stellar, Hedera, and Monero memos', () => {
+    expect(normalizeAddress(`${XLM_ACCOUNT}#my-deposit`).memo).toBe('my-deposit')
+    expect(normalizeAddress('0.0.800#note').memo).toBe('note')
+    // Monero payment ids fold to lowercase.
+    expect(normalizeAddress(`${XMR_STANDARD}#DEADBEEFCAFE1234`).memo).toBe('deadbeefcafe1234')
+  })
+
+  it('rejects a memo on families that have no such concept', () => {
+    for (const addr of [VITALIK, BTC_P2WPKH, SOL_WALLET, ADA_SHELLEY, SUI_ADDR, BCH_P2PKH]) {
+      expect(() => normalizeAddress(`${addr}#1`), addr).toThrow(/do not carry a memo/)
+      expect(detectFamily(`${addr}#1`)).toBeNull()
+    }
+  })
+
+  it('rejects malformed memos per family', () => {
+    expect(() => normalizeAddress(`${XRP_ADDR}#4294967296`)).toThrow(/destination tag/) // > uint32
+    expect(() => normalizeAddress(`${XRP_ADDR}#abc`)).toThrow(/destination tag/)
+    expect(() => normalizeAddress(`${XRP_ADDR}#`)).toThrow(/Empty destination tag/)
+    expect(() => normalizeAddress(`${XLM_ACCOUNT}#${'x'.repeat(29)}`)).toThrow(/28 bytes/)
+    expect(() => normalizeAddress(`${XMR_STANDARD}#xyz`)).toThrow(/16 hexadecimal/)
+  })
+
+  it('still rejects an invalid base address when a valid memo is attached', () => {
+    expect(detectFamily(`${XRP_ADDR.slice(0, -1)}X#12345`)).toBeNull()
+  })
+
+  it('treats different memos as different identities', () => {
+    expect(addressKey(`${XRP_ADDR}#1`)).not.toBe(addressKey(`${XRP_ADDR}#2`))
+    expect(addressKey(`${XRP_ADDR}#1`)).not.toBe(addressKey(XRP_ADDR))
+    // The base address still folds case the way its family requires.
+    expect(addressKey(`${XLM_ACCOUNT.toLowerCase()}#memo`)).toBe(`${XLM_ACCOUNT}#memo`)
   })
 })
 

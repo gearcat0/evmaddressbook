@@ -72,7 +72,7 @@ export default function AddressForm({ onSubmit, onCancel, initial }) {
                 mono
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Any supported address (0x…, bc1…, addr1…, r…, D…, t1…, 4…, …)"
+                placeholder="Any supported address, optionally with #memo (0x…, bc1…, r…#12345, …)"
                 disabled={submitting}
                 invalid={!!error}
               />

@@ -406,9 +406,83 @@ function isNearAccountId(id) {
 }
 
 // ---------------------------------------------------------------------------
+// Memos / destination tags
+//
+// Several chains route deposits to a shared account using a second value —
+// XRP calls it a destination tag, Stellar and Hedera a memo, Monero a payment
+// id. Exchanges commonly hand these out as one pasteable string, so an
+// "<address>#<memo>" suffix is accepted and kept as part of the stored
+// address: two tags on the same account are genuinely different destinations
+// and deserve to be separate entries.
+//
+// The memo is stripped again before any network call — see splitMemo.
 
-// Returns { family, address (canonical), subtype? }; throws on invalid input.
+const MEMO_RULES = {
+  xrp: {
+    label: 'destination tag',
+    // 32-bit unsigned integer; canonicalized so "007" and "7" are one entry.
+    validate: memo => /^\d+$/.test(memo) && Number(memo) <= 4294967295,
+    canonical: memo => String(Number(memo)),
+    hint: 'a whole number up to 4294967295'
+  },
+  stellar: {
+    label: 'memo',
+    validate: memo => new TextEncoder().encode(memo).length <= 28,
+    canonical: memo => memo,
+    hint: 'at most 28 bytes of text'
+  },
+  hedera: {
+    label: 'memo',
+    validate: memo => new TextEncoder().encode(memo).length <= 100,
+    canonical: memo => memo,
+    hint: 'at most 100 bytes of text'
+  },
+  monero: {
+    label: 'payment id',
+    validate: memo => /^[0-9a-fA-F]{16}$/.test(memo),
+    canonical: memo => memo.toLowerCase(),
+    hint: '16 hexadecimal characters'
+  }
+}
+
+// Families that can carry a memo, for UI copy.
+export const MEMO_FAMILIES = Object.keys(MEMO_RULES)
+
+// Splits "<address>#<memo>" into its parts. Splits on the FIRST separator only,
+// because a text memo may itself contain "#". Returns { address, memo } with
+// memo null when absent. Safe to call on any string.
+export function splitMemo(value) {
+  const s = String(value || '')
+  const i = s.indexOf('#')
+  if (i === -1) return { address: s, memo: null }
+  return { address: s.slice(0, i), memo: s.slice(i + 1) }
+}
+
+// ---------------------------------------------------------------------------
+
+// Returns { family, address (canonical), subtype?, memo? }; throws on invalid
+// input. When a memo is present the returned address includes it.
 export function normalizeAddress(input) {
+  const { address: base, memo } = splitMemo(String(input || '').trim())
+  const result = normalizeBareAddress(base)
+  if (memo === null) return result
+
+  const rule = MEMO_RULES[result.family]
+  if (!rule) {
+    throw new Error(`${result.family} addresses do not carry a memo, so "#" is not allowed here`)
+  }
+  const trimmedMemo = memo.trim()
+  if (!trimmedMemo) {
+    throw new Error(`Empty ${rule.label} after "#" — remove the "#" or supply ${rule.hint}`)
+  }
+  if (!rule.validate(trimmedMemo)) {
+    throw new Error(`Invalid ${rule.label}: expected ${rule.hint}`)
+  }
+  const canonicalMemo = rule.canonical(trimmedMemo)
+  return { ...result, address: `${result.address}#${canonicalMemo}`, memo: canonicalMemo }
+}
+
+function normalizeBareAddress(input) {
   const trimmed = String(input || '').trim()
   if (!trimmed) throw new Error('Address is required')
   const lower = trimmed.toLowerCase()
@@ -564,6 +638,14 @@ export function detectFamily(input) {
 // Stable identity key for dedup/lookups. Hex and bech32 encodings are
 // case-insensitive; base58 (all variants) is case-significant.
 export function addressKey(address) {
+  // A memo is part of the identity — two tags on one account are separate
+  // destinations — but the base address still folds case per its own family.
+  const { address: base, memo } = splitMemo(String(address || '').trim())
+  const key = baseAddressKey(base)
+  return memo === null ? key : `${key}#${memo}`
+}
+
+function baseAddressKey(address) {
   const a = String(address || '').trim()
   if (/^(0x|bc1|addr1|stake1|zs1|bitcoincash:)/i.test(a)) return a.toLowerCase()
   // Stellar StrKeys are uppercase base32; fold so case can't split an identity.

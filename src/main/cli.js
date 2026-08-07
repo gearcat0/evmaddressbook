@@ -49,7 +49,7 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    return writeStdout('1.10.0\n')
+    return writeStdout('1.11.0\n')
   }
 
   if (book !== null && !bookExists(book)) {
@@ -193,6 +193,7 @@ function usageText() {
 Options:
   --rescan                    Re-scan all addresses in the address book
   --scan <address> [chainId]  Scan address for chain activity and exit
+                              (address may carry a #memo on xrp/stellar/hedera/monero)
                               (chainId may be numeric or a family id like
                               bitcoin|bitcoincash|solana|tron|cardano|xrp|
                               dogecoin|zcash|monero|near|sui|stellar|hedera)
