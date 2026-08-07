@@ -1,6 +1,6 @@
 {
   "name": "evmaddressbook",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Address book for EVM addresses with chain activity detection",
   "main": "./out/main/index.js",
   "scripts": {

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Button, Field, Input, Select, Spinner } from 'evm-ui'
 import {
   validateXpub, deriveAddresses, suggestedKind,
   ADDRESS_KINDS, UNSUPPORTED_FAMILIES
 } from '../../../shared/xpub'
+import { discoverAddresses, DEFAULT_GAP_LIMIT } from '../../../shared/xpub-discovery'
 
 const COUNTS = [5, 10, 20, 50, 100]
 
@@ -22,6 +23,10 @@ export default function ImportXpubPanel({ book, onCancel, onImported }) {
   const [checking, setChecking] = useState(false)
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState('')
+  const [includeChange, setIncludeChange] = useState(false)
+  const [discovered, setDiscovered] = useState(null) // [{index, path, address, active}]
+  const [discovery, setDiscovery] = useState(null) // {running, scanned, used, summary}
+  const abortRef = useRef(false)
 
   const info = useMemo(() => validateXpub(text), [text])
 
@@ -31,7 +36,7 @@ export default function ImportXpubPanel({ book, onCancel, onImported }) {
     if (info.ok && !kindTouched) setKind(suggestedKind(info.format))
   }, [info.ok, info.format, kindTouched])
 
-  const derived = useMemo(() => {
+  const manual = useMemo(() => {
     if (!info.ok) return []
     try {
       return deriveAddresses(text, kind, count)
@@ -40,14 +45,33 @@ export default function ImportXpubPanel({ book, onCancel, onImported }) {
     }
   }, [text, kind, count, info.ok])
 
-  // Fresh derivation: select everything, drop any previous activity results.
+  // Discovery results replace the fixed-count list once available.
+  const derived = discovered || manual
+
+  // Changing the key, type, or count invalidates any previous discovery.
   useEffect(() => {
-    setSelected(Object.fromEntries(derived.map(d => [d.address, true])))
+    setDiscovered(null)
+    setDiscovery(null)
     setActivity(null)
-  }, [derived])
+  }, [text, kind, count, includeChange])
+
+  useEffect(() => {
+    if (discovered) {
+      // Pre-select the addresses that actually have activity.
+      setSelected(Object.fromEntries(discovered.map(d => [d.address, d.active === true])))
+    } else {
+      setSelected(Object.fromEntries(manual.map(d => [d.address, true])))
+    }
+  }, [manual, discovered])
 
   const selectedList = derived.filter(d => selected[d.address])
   const kindInfo = ADDRESS_KINDS.find(k => k.key === kind)
+
+  // Activity comes either from the manual probe or from discovery.
+  const activityMap = discovered
+    ? Object.fromEntries(discovered.map(d => [d.address, d.active]))
+    : activity
+  const busy = checking || importing || (discovery && discovery.running)
 
   const handleCheckActivity = async () => {
     setChecking(true)
@@ -65,6 +89,70 @@ export default function ImportXpubPanel({ book, onCancel, onImported }) {
       setError(err.message || 'Activity check failed')
     } finally {
       setChecking(false)
+    }
+  }
+
+  // BIP44 gap-limit discovery: walk each branch until 20 consecutive unused
+  // addresses. Derivation stays local; only addresses are sent for probing.
+  const handleDiscover = async () => {
+    abortRef.current = false
+    setError('')
+    setActivity(null)
+    setDiscovered(null)
+    setDiscovery({ running: true, scanned: 0, used: 0 })
+
+    const branches = includeChange ? [0, 1] : [0]
+    const all = []
+    let capped = false
+    let unchecked = 0
+    let failed = false
+
+    try {
+      for (const change of branches) {
+        const result = await discoverAddresses({
+          derive: (start, n) =>
+            deriveAddresses(text, kind, n, { change, startIndex: start }),
+          probe: (addresses) =>
+            window.api.checkAddressActivity({ addresses, family: kindInfo.family }),
+          gapLimit: DEFAULT_GAP_LIMIT,
+          isAborted: () => abortRef.current,
+          onProgress: ({ scanned, used }) =>
+            setDiscovery(prev => ({
+              running: true,
+              scanned: (prev?.base || 0) + scanned,
+              used: (prev?.usedBase || 0) + used,
+              base: prev?.base || 0,
+              usedBase: prev?.usedBase || 0
+            }))
+        })
+        all.push(...result.addresses)
+        capped = capped || result.hitCap
+        unchecked += result.unchecked
+        failed = failed || result.failed
+        setDiscovery(prev => ({
+          ...prev,
+          base: (prev?.base || 0) + result.scanned,
+          usedBase: (prev?.usedBase || 0) + result.used.length
+        }))
+        if (result.failed || abortRef.current) break
+      }
+
+      const used = all.filter(a => a.active === true)
+      setDiscovered(all)
+      setDiscovery({
+        running: false,
+        scanned: all.length,
+        used: used.length,
+        summary: failed
+          ? 'Discovery stopped: the activity probe is not responding.'
+          : `Scanned ${all.length} address${all.length === 1 ? '' : 'es'}, found ${used.length} with activity.` +
+            (abortRef.current ? ' Stopped early.' : '') +
+            (capped ? ' Reached the safety cap — there may be more.' : '') +
+            (unchecked > 0 ? ` ${unchecked} could not be checked.` : '')
+      })
+    } catch (err) {
+      setDiscovery(null)
+      setError(err.message || 'Discovery failed')
     }
   }
 
@@ -162,12 +250,48 @@ export default function ImportXpubPanel({ book, onCancel, onImported }) {
             <Button
               variant="secondary"
               onClick={handleCheckActivity}
-              disabled={checking || importing || derived.length === 0}
-              title="Probe each address for on-chain activity (uses API calls)"
+              disabled={busy || derived.length === 0}
+              title="Probe the listed addresses for on-chain activity (uses API calls)"
             >
               {checking ? 'Checking…' : 'Check activity'}
             </Button>
+            <Button
+              variant="primary"
+              onClick={handleDiscover}
+              disabled={busy}
+              title={`Keep deriving until ${DEFAULT_GAP_LIMIT} consecutive addresses are unused (BIP44 gap limit)`}
+            >
+              Discover used
+            </Button>
           </div>
+        </div>
+      )}
+
+      {info.ok && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
+          <input
+            type="checkbox"
+            checked={includeChange}
+            onChange={(e) => setIncludeChange(e.target.checked)}
+            disabled={busy}
+          />
+          Also discover change addresses (1/i) — doubles the number of lookups
+        </label>
+      )}
+
+      {discovery && (
+        <div style={{ marginTop: 10, fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          {discovery.running && <Spinner size={14} />}
+          <span>
+            {discovery.running
+              ? `Discovering… scanned ${discovery.scanned}, found ${discovery.used} with activity`
+              : discovery.summary}
+          </span>
+          {discovery.running && (
+            <Button variant="secondary" size="sm" onClick={() => { abortRef.current = true }}>
+              Stop
+            </Button>
+          )}
         </div>
       )}
 
@@ -188,7 +312,7 @@ export default function ImportXpubPanel({ book, onCancel, onImported }) {
                   <th style={{ width: 40 }}></th>
                   <th style={{ width: 60 }}>Path</th>
                   <th>Address</th>
-                  {activity && <th style={{ width: 90 }}>Activity</th>}
+                  {activityMap && <th style={{ width: 90 }}>Activity</th>}
                 </tr>
               </thead>
               <tbody>
@@ -199,15 +323,15 @@ export default function ImportXpubPanel({ book, onCancel, onImported }) {
                         type="checkbox"
                         checked={!!selected[d.address]}
                         onChange={() => toggle(d.address)}
-                        disabled={importing}
+                        disabled={busy}
                       />
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{d.path}</td>
                     <td><span className="address-text">{d.address}</span></td>
-                    {activity && (
+                    {activityMap && (
                       <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                        {activity[d.address] === true ? 'Used'
-                          : activity[d.address] === false ? '—'
+                        {activityMap[d.address] === true ? 'Used'
+                          : activityMap[d.address] === false ? '—'
                             : '?'}
                       </td>
                     )}

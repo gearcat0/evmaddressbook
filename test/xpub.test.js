@@ -110,6 +110,14 @@ describe('deriveAddresses — every kind produces addresses this app accepts', (
   it('is deterministic across calls', () => {
     expect(deriveAddresses(ZPUB, 'btc-segwit', 5)).toEqual(deriveAddresses(ZPUB, 'btc-segwit', 5))
   })
+
+  it('supports resuming from a start index (used by gap-limit discovery)', () => {
+    const all = deriveAddresses(ZPUB, 'btc-segwit', 6)
+    const tail = deriveAddresses(ZPUB, 'btc-segwit', 3, { startIndex: 3 })
+    expect(tail).toEqual(all.slice(3))
+    expect(tail[0].path).toBe('0/3')
+    expect(tail[0].index).toBe(3)
+  })
 })
 
 describe('safety contract', () => {

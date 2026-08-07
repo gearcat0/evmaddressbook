@@ -237,7 +237,7 @@ function addressFor(kind, child) {
 // Derive `count` watch-only addresses from an extended public key.
 // Paths are reported relative to the key (e.g. "0/3") because the absolute
 // path is not recoverable from an extended key alone.
-export function deriveAddresses(text, kind, count, { change = 0 } = {}) {
+export function deriveAddresses(text, kind, count, { change = 0, startIndex = 0 } = {}) {
   const info = validateXpub(text)
   if (!info.ok) throw new Error(info.error)
   if (!ADDRESS_KINDS.some(k => k.key === kind)) throw new Error(`Unknown address kind: ${kind}`)
@@ -253,7 +253,8 @@ export function deriveAddresses(text, kind, count, { change = 0 } = {}) {
 
   const branch = node.deriveChild(change)
   const out = []
-  for (let i = 0; i < count; i++) {
+  for (let n = 0; n < count; n++) {
+    const i = startIndex + n
     out.push({
       index: i,
       path: `${change}/${i}`,
