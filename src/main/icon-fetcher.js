@@ -177,7 +177,11 @@ const BUILTIN_ICON_SVGS = {
   dogecoin: builtinIconSvg('Ð', '#c2a633'),
   zcash: builtinIconSvg('Z', '#f4b728'),
   monero: builtinIconSvg('M', '#f26822'),
-  near: builtinIconSvg('N', '#00ec97')
+  near: builtinIconSvg('N', '#00ec97'),
+  bitcoincash: builtinIconSvg('₿', '#0ac18e'),
+  sui: builtinIconSvg('S', '#4da2ff'),
+  stellar: builtinIconSvg('✦', '#000000'),
+  hedera: builtinIconSvg('ℏ', '#222222')
 }
 
 function writeBuiltinIcons(iconsDir) {

@@ -5,6 +5,10 @@ import { dogecoinProvider } from '../src/main/providers/dogecoin-provider'
 import { zcashProvider } from '../src/main/providers/zcash-provider'
 import { moneroProvider } from '../src/main/providers/monero-provider'
 import { nearProvider } from '../src/main/providers/near-provider'
+import { suiProvider } from '../src/main/providers/sui-provider'
+import { stellarProvider } from '../src/main/providers/stellar-provider'
+import { hederaProvider } from '../src/main/providers/hedera-provider'
+import { bitcoincashProvider } from '../src/main/providers/bitcoincash-provider'
 import { useTempDataDir, removeDataDir, stubFetch, withFakeTimers } from './helpers'
 
 const ADA_CHAIN = { chainid: 'cardano', apiurl: 'https://api.koios.rest/api/v1' }
@@ -186,6 +190,102 @@ describe('near provider', () => {
     }))
     await expect(withFakeTimers(() => nearProvider.checkActivity(NEAR_CHAIN, NAMED)))
       .rejects.toThrow('server overloaded')
+  })
+})
+
+describe('sui provider', () => {
+  const CHAIN = { chainid: 'sui', rpcurl: 'https://sui-rpc.publicnode.com' }
+  const ADDR = '0x0000000000000000000000000000000000000000000000000000000000000005'
+
+  it('keeps the MIST balance as a string and counts coin objects', async () => {
+    stubFetch(() => ({ body: { jsonrpc: '2.0', id: 1, result: { totalBalance: '31018584912', coinObjectCount: 6 } } }))
+    const { active, typeInfo } = await withFakeTimers(() => suiProvider.checkActivity(CHAIN, ADDR))
+    expect(active).toBe(true)
+    expect(typeInfo).toEqual({ addressType: 'wallet', balanceMist: '31018584912', coinObjects: 6 })
+    expect(typeof typeInfo.balanceMist).toBe('string')
+  })
+
+  it('reports an untouched address as inactive', async () => {
+    stubFetch(() => ({ body: { jsonrpc: '2.0', id: 1, result: { totalBalance: '0', coinObjectCount: 0 } } }))
+    const { active } = await withFakeTimers(() => suiProvider.checkActivity(CHAIN, ADDR))
+    expect(active).toBe(false)
+  })
+})
+
+describe('stellar provider', () => {
+  const CHAIN = { chainid: 'stellar', apiurl: 'https://horizon.stellar.org' }
+  const ADDR = 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7'
+
+  it('reads the native balance and counts other assets', async () => {
+    stubFetch(() => ({
+      body: {
+        balances: [
+          { asset_type: 'credit_alphanum4', balance: '5.0' },
+          { asset_type: 'native', balance: '98.7374489' }
+        ]
+      }
+    }))
+    const { active, typeInfo } = await withFakeTimers(() => stellarProvider.checkActivity(CHAIN, ADDR))
+    expect(active).toBe(true)
+    expect(typeInfo).toMatchObject({
+      addressType: 'wallet', balanceXlm: '98.7374489', assetCount: 1, accountType: 'account'
+    })
+  })
+
+  it('treats an unfunded account (404) as clean inactivity', async () => {
+    stubFetch(() => ({ status: 404 }))
+    const before = stellarProvider.stats.errors
+    const { active } = await withFakeTimers(() => stellarProvider.checkActivity(CHAIN, ADDR))
+    expect(active).toBe(false)
+    expect(stellarProvider.stats.errors).toBe(before)
+  })
+})
+
+describe('hedera provider', () => {
+  const CHAIN = { chainid: 'hedera', apiurl: 'https://mainnet-public.mirrornode.hedera.com' }
+
+  it('reads the tinybar balance as a string', async () => {
+    stubFetch(() => ({ body: { account: '0.0.2', balance: { balance: 1663012637744658 }, key: { _type: 'ED25519' } } }))
+    const { active, typeInfo } = await withFakeTimers(() => hederaProvider.checkActivity(CHAIN, '0.0.2'))
+    expect(active).toBe(true)
+    expect(typeInfo).toMatchObject({ addressType: 'wallet', balanceTinybar: '1663012637744658' })
+    expect(typeof typeInfo.balanceTinybar).toBe('string')
+  })
+
+  it('strips a HIP-15 checksum before querying the mirror node', async () => {
+    const calls = stubFetch(() => ({ body: { balance: { balance: 1 }, key: {} } }))
+    await withFakeTimers(() => hederaProvider.checkActivity(CHAIN, '0.0.123-vfmkw'))
+    expect(calls[0].url).toContain('/accounts/0.0.123')
+    expect(calls[0].url).not.toContain('vfmkw')
+  })
+
+  it('treats a missing account (404) as clean inactivity', async () => {
+    stubFetch(() => ({ status: 404 }))
+    const { active } = await withFakeTimers(() => hederaProvider.checkActivity(CHAIN, '0.0.999999999'))
+    expect(active).toBe(false)
+  })
+})
+
+describe('bitcoin cash provider', () => {
+  const CHAIN = { chainid: 'bitcoincash', apiurl: 'https://api.3xpl.com' }
+  const ADDR = 'qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a'
+
+  it('reads balance and tx count, and records the script type', async () => {
+    stubFetch(() => ({
+      body: { data: { balances: { 'bitcoin-cash-main': { 'bitcoin-cash': { balance: '5593730321', events: 11722 } } } } }
+    }))
+    const { active, typeInfo } = await withFakeTimers(() => bitcoincashProvider.checkActivity(CHAIN, ADDR))
+    expect(active).toBe(true)
+    expect(typeInfo).toEqual({
+      addressType: 'wallet', txCount: 11722, balanceBchSats: 5593730321, scriptType: 'p2pkh'
+    })
+  })
+
+  it('strips the bitcoincash: prefix, which 3xpl rejects', async () => {
+    const calls = stubFetch(() => ({ body: { data: { balances: {} } } }))
+    await withFakeTimers(() => bitcoincashProvider.checkActivity(CHAIN, `bitcoincash:${ADDR}`))
+    expect(calls[0].url).toContain(`/address/${ADDR}`)
+    expect(calls[0].url).not.toContain('bitcoincash:')
   })
 })
 

@@ -49,7 +49,7 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    return writeStdout('1.9.0\n')
+    return writeStdout('1.10.0\n')
   }
 
   if (book !== null && !bookExists(book)) {
@@ -194,7 +194,8 @@ Options:
   --rescan                    Re-scan all addresses in the address book
   --scan <address> [chainId]  Scan address for chain activity and exit
                               (chainId may be numeric or a family id like
-                              bitcoin|solana|tron|cardano|xrp|dogecoin|zcash|monero|near)
+                              bitcoin|bitcoincash|solana|tron|cardano|xrp|
+                              dogecoin|zcash|monero|near|sui|stellar|hedera)
   --abi <address> <chainId>   Print contract ABI as JSON and exit (EVM chains only)
   --addresses                 Print all addresses as JSON and exit
   --addresses --tag <tag>     Print only addresses carrying the given tag

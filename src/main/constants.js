@@ -55,6 +55,15 @@ export const XRP_RATE_LIMIT_MS = 500
 export const DOGECOIN_RATE_LIMIT_MS = 2000
 export const ZCASH_RATE_LIMIT_MS = 2000
 export const NEAR_RATE_LIMIT_MS = 500
+export const SUI_RATE_LIMIT_MS = 500
+export const STELLAR_RATE_LIMIT_MS = 500
+export const HEDERA_RATE_LIMIT_MS = 500
+export const BITCOINCASH_RATE_LIMIT_MS = 2000
+
+export const SUI_RPC_URL = 'https://sui-rpc.publicnode.com'
+export const SUI_COIN_TYPE = '0x2::sui::SUI'
+export const STELLAR_HORIZON_URL = 'https://horizon.stellar.org'
+export const HEDERA_MIRROR_URL = 'https://mainnet-public.mirrornode.hedera.com'
 
 export const NEAR_RPC_URL = 'https://rpc.mainnet.near.org'
 // A NEAR account with no contract deployed reports this all-ones code hash

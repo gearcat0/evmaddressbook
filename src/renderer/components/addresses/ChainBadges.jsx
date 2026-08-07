@@ -24,23 +24,29 @@ function getTypeLabel(info) {
   return 'Contract'
 }
 
-// yoctoNEAR (1e-24) exceeds JS number precision, so it arrives as a string and
-// is reduced with BigInt rather than division.
-function formatYocto(raw) {
+// Some chains denominate balances in units whose supply exceeds JS number
+// precision (yoctoNEAR, MIST, tinybars), so those arrive as strings and are
+// reduced with BigInt rather than division.
+function fromBaseUnits(raw, decimals, symbol) {
   let value
   try {
     value = BigInt(raw)
   } catch {
     return null
   }
-  const unit = 10n ** 24n
+  const unit = 10n ** BigInt(decimals)
   const whole = value / unit
   const frac = (value % unit) * 10000n / unit // four decimal places
-  return `${whole}.${String(frac).padStart(4, '0')} NEAR`
+  return `${whole}.${String(frac).padStart(4, '0')} ${symbol}`
 }
 
 function formatBalance(info) {
-  if (typeof info.balanceYocto === 'string') return formatYocto(info.balanceYocto)
+  if (typeof info.balanceYocto === 'string') return fromBaseUnits(info.balanceYocto, 24, 'NEAR')
+  if (typeof info.balanceMist === 'string') return fromBaseUnits(info.balanceMist, 9, 'SUI')
+  if (typeof info.balanceTinybar === 'string') return fromBaseUnits(info.balanceTinybar, 8, 'HBAR')
+  // Horizon already reports XLM as a decimal string.
+  if (typeof info.balanceXlm === 'string') return `${info.balanceXlm} XLM`
+  if (typeof info.balanceBchSats === 'number') return `${info.balanceBchSats / 1e8} BCH`
   if (typeof info.balanceSats === 'number') return `${info.balanceSats / 1e8} BTC`
   if (typeof info.balanceLamports === 'number') return `${info.balanceLamports / 1e9} SOL`
   if (typeof info.balanceSun === 'number') return `${info.balanceSun / 1e6} TRX`
@@ -70,6 +76,9 @@ function buildTooltip(chainName, info) {
   if (info.version) lines.push(`Version: ${info.version}`)
   if (info.owners) lines.push(`Owners: ${info.owners.length} (${info.owners.map(o => o.slice(0, 8) + '...').join(', ')})`)
   if (info.threshold) lines.push(`Threshold: ${info.threshold}`)
+  if (info.evmAddress) lines.push(`EVM alias: ${info.evmAddress}`)
+  if (typeof info.assetCount === 'number' && info.assetCount > 0) lines.push(`Other assets: ${info.assetCount}`)
+  if (typeof info.coinObjects === 'number') lines.push(`Coin objects: ${info.coinObjects}`)
   if (typeof info.txCount === 'number') lines.push(`Transactions: ${info.txCount}`)
   const balance = formatBalance(info)
   if (balance) lines.push(`Balance: ${balance}`)

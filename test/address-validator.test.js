@@ -23,6 +23,11 @@ const ZEC_SAPLING = 'zs1qqqqqqqqqqqqqqqqqqcguyvaw2vjk4sdyeg0lc970u659lvhqq7t0np6
 const XMR_STANDARD = '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A'
 const XMR_SUBADDRESS = '888tNkZrPN6JsEgekjMnABU4TBzc2Dt29EPAvkRxbANsAnjyPbb3iQ1YBRk1UXcdRsiKc9dhwMVgN5S9cQUiyoogDavup3H'
 const NEAR_IMPLICIT = '98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6de'
+const SUI_ADDR = '0x0000000000000000000000000000000000000000000000000000000000000005'
+const XLM_ACCOUNT = 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7'
+const XLM_SEED = 'SDJHRQF4GCMIIKAAAQ6IHY42X73FQFLHUULAPSKKD4DFDM7UXWWCRHBE' // public test vector, no funds
+const BCH_P2PKH = 'qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a'
+const BCH_P2SH = 'ppm2qsznhks23z7629mms6s4cwef74vcwvn0h829pq'
 
 describe('normalizeAddress — accepted families and canonical forms', () => {
   it('checksums EVM addresses to EIP-55', () => {
@@ -98,6 +103,64 @@ describe('normalizeAddress — accepted families and canonical forms', () => {
     expect(normalizeAddress(NEAR_IMPLICIT.toUpperCase()).address).toBe(NEAR_IMPLICIT)
   })
 
+  it('classifies Sui addresses and keeps them distinct from EVM', () => {
+    expect(normalizeAddress(SUI_ADDR)).toEqual({ family: 'sui', address: SUI_ADDR })
+    // Same 0x prefix, different length — the two must not be confused.
+    expect(detectFamily(VITALIK)).toBe('evm')
+    expect(normalizeAddress(SUI_ADDR.toUpperCase().replace('0X', '0x')).address).toBe(SUI_ADDR)
+  })
+
+  it('classifies Stellar accounts, muxed accounts, and contracts', () => {
+    expect(normalizeAddress(XLM_ACCOUNT)).toEqual({
+      family: 'stellar', address: XLM_ACCOUNT, subtype: 'account'
+    })
+    expect(normalizeAddress(XLM_ACCOUNT.toLowerCase()).address).toBe(XLM_ACCOUNT)
+  })
+
+  it('REFUSES a Stellar secret seed with an explicit warning', () => {
+    expect(() => normalizeAddress(XLM_SEED)).toThrow(/SECRET/)
+    expect(() => normalizeAddress(XLM_SEED)).toThrow(/spend/)
+    expect(detectFamily(XLM_SEED)).toBeNull()
+  })
+
+  it('classifies Hedera ids with and without a HIP-15 checksum', () => {
+    expect(normalizeAddress('0.0.2')).toEqual({ family: 'hedera', address: '0.0.2' })
+    expect(normalizeAddress('0.0.123-vfmkw').address).toBe('0.0.123-vfmkw')
+  })
+
+  it('folds the case of a Hedera checksum, deviating from HIP-15 deliberately', () => {
+    // HIP-15 rejects "0.0.123-VFMKW"; we accept and canonicalize it, matching
+    // how every other family here treats case. The checksum is still verified.
+    expect(normalizeAddress('0.0.123-VFMKW').address).toBe('0.0.123-vfmkw')
+    // A capitalised but *wrong* checksum is still rejected.
+    expect(detectFamily('0.0.123-ABCDE')).toBeNull()
+  })
+
+  it('verifies the Hedera checksum against the HIP-15 spec vectors', () => {
+    for (const [id, checksum] of [
+      ['0.0.1', 'dfkxr'], ['0.0.4', 'cjcuq'], ['0.0.5', 'ktach'], ['0.0.6', 'tcxjy'],
+      ['0.0.12', 'uuuup'], ['0.0.123', 'vfmkw'], ['0.0.1234567890', 'zbhlt']
+    ]) {
+      expect(normalizeAddress(`${id}-${checksum}`).family).toBe('hedera')
+      // Any other checksum for the same id must be rejected.
+      expect(detectFamily(`${id}-aaaaa`)).toBeNull()
+    }
+  })
+
+  it('classifies Bitcoin Cash CashAddr with and without the prefix', () => {
+    expect(normalizeAddress(BCH_P2PKH)).toEqual({
+      family: 'bitcoincash', address: BCH_P2PKH, subtype: 'p2pkh'
+    })
+    expect(normalizeAddress(`bitcoincash:${BCH_P2PKH}`).address).toBe(BCH_P2PKH)
+    expect(normalizeAddress(BCH_P2SH).subtype).toBe('p2sh')
+  })
+
+  it('reports legacy Bitcoin Cash addresses as Bitcoin, which is unavoidable', () => {
+    // A legacy BCH address is byte-identical to a Bitcoin address; no validator
+    // can distinguish them. Documented behaviour, pinned so it stays deliberate.
+    expect(detectFamily('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')).toBe('bitcoin')
+  })
+
   it('classifies Monero standard and subaddresses via the keccak checksum', () => {
     expect(normalizeAddress(XMR_STANDARD)).toEqual({ family: 'monero', address: XMR_STANDARD, subtype: 'standard' })
     expect(normalizeAddress(XMR_SUBADDRESS)).toEqual({ family: 'monero', address: XMR_SUBADDRESS, subtype: 'subaddress' })
@@ -136,7 +199,14 @@ describe('normalizeAddress — rejections', () => {
     ['NEAR id starting with a separator', '-alice.near'],
     ['bare .near', '.near'],
     ['NEAR implicit account one char short', '98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6d'],
-    ['NEAR implicit account with a non-hex char', '98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6dg']
+    ['NEAR implicit account with a non-hex char', '98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6dg'],
+    ['Sui address one char short', '0x000000000000000000000000000000000000000000000000000000000000005'],
+    ['Stellar with a corrupted final char', 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN6'],
+    ['Hedera with a wrong checksum', '0.0.123-abcde'],
+    ['Hedera with a leading zero', '0.00.123'],
+    ['Hedera with only two parts', '0.123'],
+    ['CashAddr with a corrupted char', 'qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6b'],
+    ['CashAddr under a foreign prefix', 'bchtest:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a']
   ]
 
   for (const [label, input] of bad) {

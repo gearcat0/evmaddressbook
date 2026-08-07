@@ -12,7 +12,11 @@ const FAMILY_LABELS = {
   dogecoin: 'Dogecoin',
   zcash: 'Zcash',
   monero: 'Monero',
-  near: 'NEAR'
+  near: 'NEAR',
+  bitcoincash: 'Bitcoin Cash',
+  sui: 'Sui',
+  stellar: 'Stellar',
+  hedera: 'Hedera'
 }
 
 export default function AddressForm({ onSubmit, onCancel, initial }) {

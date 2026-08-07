@@ -8,7 +8,8 @@ import { getAddress, decodeBase58, sha256, keccak256 } from 'ethers'
 // classification is by prefix/shape first and confirmed by checksum.
 
 export const SUPPORTED_FAMILIES_LABEL =
-  'EVM, Bitcoin, Solana, Tron, Cardano, XRP, Dogecoin, Zcash, Monero, NEAR'
+  'EVM, Bitcoin, Bitcoin Cash, Solana, Tron, Cardano, XRP, Dogecoin, Zcash, ' +
+  'Monero, NEAR, Sui, Stellar, Hedera'
 
 const BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 const BECH32M_CONST = 0x2bc830a3
@@ -253,6 +254,139 @@ function decodeXrp(str) {
 }
 
 // ---------------------------------------------------------------------------
+// Stellar (StrKey: base32 over version byte + payload + CRC16-XModem)
+
+const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+
+// StrKey version bytes. The seed is listed solely so it can be refused: an
+// "S..." key can spend, and users paste them by accident.
+const STRKEY_ACCOUNT = 0x30 // G
+const STRKEY_MUXED = 0x60 // M
+const STRKEY_CONTRACT = 0x10 // C
+const STRKEY_SEED = 0x90 // S
+
+function base32Decode(str) {
+  let bits = 0
+  let value = 0
+  const out = []
+  for (const ch of str) {
+    const i = BASE32_ALPHABET.indexOf(ch)
+    if (i === -1) return null
+    value = (value << 5) | i
+    bits += 5
+    if (bits >= 8) {
+      bits -= 8
+      out.push((value >>> bits) & 0xff)
+    }
+  }
+  return Uint8Array.from(out)
+}
+
+function crc16XModem(bytes) {
+  let crc = 0
+  for (const b of bytes) {
+    crc ^= b << 8
+    for (let i = 0; i < 8; i++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff
+    }
+  }
+  return crc & 0xffff
+}
+
+// Returns { version, payloadLength } or null.
+function decodeStrKey(str) {
+  if (!/^[A-Z2-7]+$/.test(str)) return null
+  const raw = base32Decode(str)
+  if (!raw || raw.length < 3) return null
+  const body = raw.slice(0, -2)
+  const expected = raw[raw.length - 2] | (raw[raw.length - 1] << 8)
+  if (crc16XModem(body) !== expected) return null
+  return { version: body[0], payloadLength: body.length - 1 }
+}
+
+// ---------------------------------------------------------------------------
+// Hedera (shard.realm.num with an optional HIP-15 checksum)
+
+const HEDERA_ID = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([a-z]{5}))?$/
+
+// HIP-15 checksum for the Hedera mainnet ledger (id 0x00).
+function hederaChecksum(id) {
+  const digits = []
+  for (const ch of id) digits.push(ch === '.' ? 10 : ch.charCodeAt(0) - 48)
+  const ledger = [0x00, 0, 0, 0, 0, 0, 0] // mainnet ledger id + 6 zero bytes
+  const p3 = 26 ** 3
+  const p5 = 26 ** 5
+  let sd0 = 0
+  let sd1 = 0
+  let sd = 0
+  let sh = 0
+  for (let i = 0; i < digits.length; i++) {
+    if (i % 2 === 0) sd0 += digits[i]
+    else sd1 += digits[i]
+  }
+  sd0 %= 11
+  sd1 %= 11
+  for (const x of digits) sd = (sd * 31 + x) % p3
+  for (const x of ledger) sh = (sh * 31 + x) % p5
+  let c = ((((digits.length % 5) * 11 + sd0) * 11 + sd1) * p3 + sd + sh) % p5
+  c = (c * 1000003) % p5
+  let out = ''
+  for (let i = 0; i < 5; i++) {
+    out = String.fromCharCode(97 + (c % 26)) + out
+    c = Math.floor(c / 26)
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Bitcoin Cash (CashAddr: bech32 charset with a 40-bit BCH checksum)
+//
+// Note: BCH also has a legacy base58check format that is byte-for-byte
+// identical to a Bitcoin address. Those are reported as Bitcoin — the two
+// chains genuinely share the encoding, so no validator can tell them apart.
+// Only CashAddr is recognized as Bitcoin Cash.
+
+const CASHADDR_PREFIX = 'bitcoincash'
+
+function cashPolymod(values) {
+  let c = 1n
+  for (const d of values) {
+    const c0 = c >> 35n
+    c = ((c & 0x07ffffffffn) << 5n) ^ BigInt(d)
+    if (c0 & 0x01n) c ^= 0x98f2bc8e61n
+    if (c0 & 0x02n) c ^= 0x79b76d99e2n
+    if (c0 & 0x04n) c ^= 0xf33e5fb3c4n
+    if (c0 & 0x08n) c ^= 0xae2eabe2a8n
+    if (c0 & 0x10n) c ^= 0x1e4f43e470n
+  }
+  return c ^ 1n
+}
+
+// Returns { subtype, body } for a valid mainnet CashAddr, else null.
+function decodeCashAddr(input) {
+  const lower = input.toLowerCase()
+  const sep = lower.indexOf(':')
+  const prefix = sep === -1 ? CASHADDR_PREFIX : lower.slice(0, sep)
+  const body = sep === -1 ? lower : lower.slice(sep + 1)
+  if (prefix !== CASHADDR_PREFIX || body.length === 0) return null
+
+  const data = []
+  for (const ch of body) {
+    const k = BECH32_CHARSET.indexOf(ch)
+    if (k === -1) return null
+    data.push(k)
+  }
+  const expanded = [...prefix].map(ch => ch.charCodeAt(0) & 31)
+  if (cashPolymod([...expanded, 0, ...data]) !== 0n) return null
+
+  const payload = convertBits(data.slice(0, -8), 5, 8)
+  if (!payload || payload.length !== 21) return null
+  if (payload[0] === 0x00) return { subtype: 'p2pkh', body }
+  if (payload[0] === 0x08) return { subtype: 'p2sh', body }
+  return null
+}
+
+// ---------------------------------------------------------------------------
 // NEAR
 //
 // NEAR is the one supported family whose named accounts carry NO checksum:
@@ -278,9 +412,17 @@ export function normalizeAddress(input) {
   const trimmed = String(input || '').trim()
   if (!trimmed) throw new Error('Address is required')
   const lower = trimmed.toLowerCase()
+  const upper = trimmed.toUpperCase()
 
   if (/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
     return { family: 'evm', address: getAddress(trimmed) }
+  }
+
+  // Sui: 32-byte object id. Distinguished from EVM purely by length (64 hex
+  // digits vs 40), so only the full canonical form is accepted — a truncated
+  // Sui address would otherwise be indistinguishable from an EVM one.
+  if (/^0x[0-9a-fA-F]{64}$/.test(trimmed)) {
+    return { family: 'sui', address: lower }
   }
 
   // bech32 families (canonical form is lowercase)
@@ -297,6 +439,53 @@ export function normalizeAddress(input) {
   if (lower.startsWith('zs1')) {
     if (!decodeZcashSapling(trimmed)) throw invalid()
     return { family: 'zcash', address: lower, subtype: 'sapling' }
+  }
+
+  // Bitcoin Cash CashAddr, with or without the "bitcoincash:" prefix. Checked
+  // ahead of the base58 families because its 40-bit checksum makes a false
+  // positive negligible, while a bare CashAddr shares its character set with
+  // other lowercase encodings.
+  if (lower.startsWith(`${CASHADDR_PREFIX}:`) || /^[qp][0-9a-z]{41}$/.test(lower)) {
+    const cash = decodeCashAddr(trimmed)
+    if (cash) return { family: 'bitcoincash', address: cash.body, subtype: cash.subtype }
+    if (lower.startsWith(`${CASHADDR_PREFIX}:`)) throw invalid()
+  }
+
+  // Hedera entity id, optionally carrying a HIP-15 checksum.
+  //
+  // Deliberate deviation from HIP-15: the spec requires the checksum to be
+  // lowercase and rejects "0.0.123-VFMKW". We fold case instead, matching how
+  // every other family here treats case, and the checksum is still verified in
+  // full — so nothing is weakened by accepting a capitalised paste.
+  const hedera = HEDERA_ID.exec(lower)
+  if (hedera) {
+    const id = `${hedera[1]}.${hedera[2]}.${hedera[3]}`
+    if (hedera[4] && hedera[4] !== hederaChecksum(id)) {
+      throw new Error(`Hedera checksum does not match: expected ${id}-${hederaChecksum(id)}`)
+    }
+    return { family: 'hedera', address: hedera[4] ? `${id}-${hedera[4]}` : id }
+  }
+
+  // Stellar StrKey. Secret seeds are recognized only so they can be refused.
+  if (/^[A-Z2-7]{56,69}$/.test(upper) && 'GMCS'.includes(upper[0])) {
+    const key = decodeStrKey(upper)
+    if (key) {
+      if (key.version === STRKEY_SEED) {
+        throw new Error(
+          'This is a Stellar SECRET seed (S…). It can spend your funds — never paste it here. ' +
+          'Use the matching public key (G…) instead.'
+        )
+      }
+      if (key.version === STRKEY_ACCOUNT && key.payloadLength === 32) {
+        return { family: 'stellar', address: upper, subtype: 'account' }
+      }
+      if (key.version === STRKEY_MUXED && key.payloadLength === 40) {
+        return { family: 'stellar', address: upper, subtype: 'muxed' }
+      }
+      if (key.version === STRKEY_CONTRACT && key.payloadLength === 32) {
+        return { family: 'stellar', address: upper, subtype: 'contract' }
+      }
+    }
   }
 
   // NEAR — checked before the base58 families. Both forms are tightly shaped
@@ -376,7 +565,9 @@ export function detectFamily(input) {
 // case-insensitive; base58 (all variants) is case-significant.
 export function addressKey(address) {
   const a = String(address || '').trim()
-  if (/^(0x|bc1|addr1|stake1|zs1)/i.test(a)) return a.toLowerCase()
+  if (/^(0x|bc1|addr1|stake1|zs1|bitcoincash:)/i.test(a)) return a.toLowerCase()
+  // Stellar StrKeys are uppercase base32; fold so case can't split an identity.
+  if (/^[A-Za-z2-7]{56,69}$/.test(a) && 'GMC'.includes(a[0].toUpperCase())) return a.toUpperCase()
   // NEAR account ids are lowercase by specification; fold case so a stray
   // capital can't create a second identity for the same account.
   if (/\.near$/i.test(a) || /^[0-9a-f]{64}$/i.test(a)) return a.toLowerCase()

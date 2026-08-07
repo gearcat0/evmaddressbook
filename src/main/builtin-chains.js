@@ -90,6 +90,50 @@ export const BUILTIN_CHAINS = [
     enabled: true
   },
   {
+    chainid: 'bitcoincash',
+    chainname: 'Bitcoin Cash',
+    family: 'bitcoincash',
+    blockexplorer: 'https://3xpl.com/bitcoin-cash',
+    addressUrlTemplate: 'https://3xpl.com/bitcoin-cash/address/{address}',
+    apiurl: 'https://api.3xpl.com',
+    status: 1,
+    comment: 'Built-in non-EVM chain',
+    enabled: true
+  },
+  {
+    chainid: 'sui',
+    chainname: 'Sui',
+    family: 'sui',
+    blockexplorer: 'https://suiscan.xyz/mainnet',
+    addressUrlTemplate: 'https://suiscan.xyz/mainnet/account/{address}',
+    rpcurl: 'https://sui-rpc.publicnode.com',
+    status: 1,
+    comment: 'Built-in non-EVM chain',
+    enabled: true
+  },
+  {
+    chainid: 'stellar',
+    chainname: 'Stellar',
+    family: 'stellar',
+    blockexplorer: 'https://stellar.expert/explorer/public',
+    addressUrlTemplate: 'https://stellar.expert/explorer/public/account/{address}',
+    apiurl: 'https://horizon.stellar.org',
+    status: 1,
+    comment: 'Built-in non-EVM chain',
+    enabled: true
+  },
+  {
+    chainid: 'hedera',
+    chainname: 'Hedera',
+    family: 'hedera',
+    blockexplorer: 'https://hashscan.io/mainnet',
+    addressUrlTemplate: 'https://hashscan.io/mainnet/account/{address}',
+    apiurl: 'https://mainnet-public.mirrornode.hedera.com',
+    status: 1,
+    comment: 'Built-in non-EVM chain',
+    enabled: true
+  },
+  {
     // Monero explorers have no address pages (activity is private), so this
     // record deliberately has no blockexplorer or addressUrlTemplate.
     chainid: 'monero',
