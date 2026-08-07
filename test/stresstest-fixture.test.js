@@ -20,7 +20,7 @@ afterAll(() => removeDataDir(dir))
 
 describe('stresstest fixture book', () => {
   it('loads all entries without triggering a migration rewrite', () => {
-    expect(entries.length).toBeGreaterThanOrEqual(2030)
+    expect(entries.length).toBeGreaterThanOrEqual(2047)
     const onDisk = fs.readFileSync(path.join(dir, 'addresses.json'), 'utf-8')
     expect(onDisk).toBe(fs.readFileSync(FIXTURE, 'utf-8'))
   })
@@ -28,8 +28,8 @@ describe('stresstest fixture book', () => {
   it('contains every supported family, including all Bitcoin script types', () => {
     const families = new Set(entries.map(e => detectFamily(e.address)))
     expect(families).toEqual(new Set([
-      'evm', 'bitcoin', 'solana', 'tron',
-      'cardano', 'xrp', 'dogecoin', 'zcash', 'monero'
+      'evm', 'bitcoin', 'bitcoincash', 'solana', 'tron', 'cardano', 'xrp',
+      'dogecoin', 'zcash', 'monero', 'near', 'sui', 'stellar', 'hedera'
     ]))
 
     const scriptTypes = new Set(
@@ -49,6 +49,16 @@ describe('stresstest fixture book', () => {
       const key = addressKey(entry.address)
       expect(keys.has(key), `duplicate address: ${entry.address}`).toBe(false)
       keys.add(key)
+    }
+  })
+
+  it('covers an address carrying a memo', () => {
+    const withMemo = entries.filter(e => e.address.includes('#'))
+    expect(withMemo.length).toBeGreaterThan(0)
+    for (const entry of withMemo) {
+      // The memo must not have broken family detection or the chain keying.
+      expect(detectFamily(entry.address)).toBe(entry.family)
+      expect(Object.keys(entry.activeChains || {})).toContain(entry.family)
     }
   })
 

@@ -21402,7 +21402,7 @@
         "balanceLovelace": 1000000
       }
     },
-    "lastScanned": "2026-08-05T09:48:38.411Z",
+    "lastScanned": "2026-08-07T08:38:44.077Z",
     "lastScanErrors": []
   },
   {
@@ -21416,7 +21416,7 @@
         "balanceLovelace": 0
       }
     },
-    "lastScanned": "2026-08-05T09:48:40.969Z",
+    "lastScanned": "2026-08-07T08:38:46.046Z",
     "lastScanErrors": []
   },
   {
@@ -21429,7 +21429,7 @@
         "balanceLovelace": 0
       }
     },
-    "lastScanned": "2026-08-05T09:48:42.606Z",
+    "lastScanned": "2026-08-07T08:38:46.297Z",
     "lastScanErrors": []
   },
   {
@@ -21439,10 +21439,10 @@
     "activeChains": {
       "cardano": {
         "addressType": "wallet",
-        "balanceLovelace": 10000000
+        "balanceLovelace": 0
       }
     },
-    "lastScanned": "2026-08-05T09:48:45.022Z",
+    "lastScanned": "2026-08-07T08:38:49.353Z",
     "lastScanErrors": []
   },
   {
@@ -21456,7 +21456,7 @@
         "sequence": 44196
       }
     },
-    "lastScanned": "2026-08-05T09:48:46.217Z",
+    "lastScanned": "2026-08-07T08:38:49.865Z",
     "lastScanErrors": []
   },
   {
@@ -21467,10 +21467,10 @@
       "xrp": {
         "addressType": "wallet",
         "balanceDrops": 99999000,
-        "sequence": 568882
+        "sequence": 568884
       }
     },
-    "lastScanned": "2026-08-05T09:48:47.432Z",
+    "lastScanned": "2026-08-07T08:38:50.318Z",
     "lastScanErrors": []
   },
   {
@@ -21478,7 +21478,7 @@
     "family": "xrp",
     "description": "ACCOUNT_ZERO special XRP address (not funded on ledger)",
     "activeChains": {},
-    "lastScanned": "2026-08-05T09:48:48.717Z",
+    "lastScanned": "2026-08-07T08:38:50.811Z",
     "lastScanErrors": []
   },
   {
@@ -21493,7 +21493,7 @@
         "scriptType": "p2pkh"
       }
     },
-    "lastScanned": "2026-08-05T09:48:49.878Z",
+    "lastScanned": "2026-08-07T08:38:51.193Z",
     "lastScanErrors": []
   },
   {
@@ -21508,7 +21508,7 @@
         "scriptType": "p2pkh"
       }
     },
-    "lastScanned": "2026-08-05T09:48:50.896Z",
+    "lastScanned": "2026-08-07T08:38:53.155Z",
     "lastScanErrors": []
   },
   {
@@ -21523,7 +21523,7 @@
         "scriptType": "p2pkh"
       }
     },
-    "lastScanned": "2026-08-05T09:48:52.254Z",
+    "lastScanned": "2026-08-07T08:38:53.825Z",
     "lastScanErrors": []
   },
   {
@@ -21538,7 +21538,7 @@
         "scriptType": "p2sh"
       }
     },
-    "lastScanned": "2026-08-05T09:48:53.512Z",
+    "lastScanned": "2026-08-07T08:38:55.392Z",
     "lastScanErrors": []
   },
   {
@@ -21551,7 +21551,7 @@
         "pool": "sapling"
       }
     },
-    "lastScanned": "2026-08-05T09:48:54.118Z",
+    "lastScanned": "2026-08-07T08:38:55.393Z",
     "lastScanErrors": []
   },
   {
@@ -21564,7 +21564,7 @@
         "subtype": "standard"
       }
     },
-    "lastScanned": "2026-08-05T09:48:54.710Z",
+    "lastScanned": "2026-08-07T08:38:55.396Z",
     "lastScanErrors": []
   },
   {
@@ -21577,7 +21577,268 @@
         "subtype": "subaddress"
       }
     },
-    "lastScanned": "2026-08-05T09:48:55.225Z",
+    "lastScanned": "2026-08-07T08:38:55.399Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "root.near",
+    "family": "near",
+    "description": "Active NEAR named account",
+    "tags": [],
+    "activeChains": {
+      "near": {
+        "addressType": "wallet",
+        "balanceYocto": "2860161513528539267824438625",
+        "accountType": "named"
+      }
+    },
+    "lastScanned": "2026-08-07T08:38:59.369Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "aurora.near",
+    "family": "near",
+    "description": "Aurora EVM engine contract on NEAR",
+    "tags": [],
+    "activeChains": {
+      "near": {
+        "addressType": "contract",
+        "balanceYocto": "3762879667423042043902400",
+        "accountType": "named"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:02.487Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "wrap.near",
+    "family": "near",
+    "description": "Wrapped NEAR (wNEAR) contract, ~23M NEAR",
+    "tags": [],
+    "activeChains": {
+      "near": {
+        "addressType": "contract",
+        "balanceYocto": "23122932635376877472549468188528",
+        "accountType": "named"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:05.595Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6de",
+    "family": "near",
+    "description": "NEAR implicit account (64-hex form)",
+    "tags": [],
+    "activeChains": {
+      "near": {
+        "addressType": "wallet",
+        "balanceYocto": "9098427322681399999999",
+        "accountType": "implicit"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:08.648Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "0x0000000000000000000000000000000000000000000000000000000000000005",
+    "family": "sui",
+    "description": "Sui system state object",
+    "tags": [],
+    "activeChains": {
+      "sui": {
+        "addressType": "wallet",
+        "balanceMist": "31018584912",
+        "coinObjects": 6
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:09.325Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "0x0000000000000000000000000000000000000000000000000000000000000006",
+    "family": "sui",
+    "description": "Sui Clock shared object",
+    "tags": [],
+    "activeChains": {
+      "sui": {
+        "addressType": "wallet",
+        "balanceMist": "1026624520",
+        "coinObjects": 225
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:09.618Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "0xa7580096839771ce6c05671f4a770e227877748b6af2f955177775538f708713",
+    "family": "sui",
+    "description": "Active Sui mainnet address (sampled from a recent block)",
+    "tags": [],
+    "activeChains": {
+      "sui": {
+        "addressType": "wallet",
+        "balanceMist": "1706387279268",
+        "coinObjects": 53
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:10.106Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+    "family": "stellar",
+    "description": "Centre — USDC issuer on Stellar",
+    "tags": [],
+    "activeChains": {
+      "stellar": {
+        "addressType": "wallet",
+        "balanceXlm": "23528.5607422",
+        "assetCount": 1,
+        "accountType": "account"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:11.116Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "GCO2IP3MJNUOKS4PUDI4C7LGGMQDJGXG3COYX3WSB4HHNAHKYV5YL3VC",
+    "family": "stellar",
+    "description": "Binance Stellar account (deposits require a memo)",
+    "tags": [],
+    "activeChains": {
+      "stellar": {
+        "addressType": "wallet",
+        "balanceXlm": "8.4699926",
+        "assetCount": 0,
+        "accountType": "account"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:11.383Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "GA5XIGA5C7QTPTWXQHY6MCJRMTRZDOSHR6EFIBNDQTCQHG262N4GGKTM",
+    "family": "stellar",
+    "description": "Kraken Stellar account (deposits require a memo)",
+    "tags": [],
+    "activeChains": {
+      "stellar": {
+        "addressType": "wallet",
+        "balanceXlm": "23899.8503075",
+        "assetCount": 2,
+        "accountType": "account"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:11.870Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "0.0.2",
+    "family": "hedera",
+    "description": "Hedera treasury account",
+    "tags": [],
+    "activeChains": {
+      "hedera": {
+        "addressType": "wallet",
+        "balanceTinybar": "1663012637744658",
+        "evmAddress": "0x0000000000000000000000000000000000000002"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:12.648Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "0.0.3",
+    "family": "hedera",
+    "description": "Hedera node account",
+    "tags": [],
+    "activeChains": {
+      "hedera": {
+        "addressType": "wallet",
+        "balanceTinybar": "7194811615020",
+        "evmAddress": "0x0000000000000000000000000000000000000003"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:12.905Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "0.0.800-vsfou",
+    "family": "hedera",
+    "description": "Hedera staking reward account (written with its HIP-15 checksum)",
+    "tags": [],
+    "activeChains": {
+      "hedera": {
+        "addressType": "contract",
+        "balanceTinybar": "15630348411154142",
+        "evmAddress": "0x0000000000000000000000000000000000000320"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:13.432Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "qrmfkegyf83zh5kauzwgygf82sdahd5a55x9wse7ve",
+    "family": "bitcoincash",
+    "description": "Largest Bitcoin Cash address, ~557k BCH",
+    "tags": [],
+    "activeChains": {
+      "bitcoincash": {
+        "addressType": "wallet",
+        "txCount": 1851,
+        "balanceBchSats": 55722030775324,
+        "scriptType": "p2pkh"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:14.107Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "qrwcmu77ltr3dn0hymy58gvcg3qys4hp2qn4e0z839",
+    "family": "bitcoincash",
+    "description": "Bitcoin Cash whale, ~500k BCH",
+    "tags": [],
+    "activeChains": {
+      "bitcoincash": {
+        "addressType": "wallet",
+        "txCount": 30,
+        "balanceBchSats": 50054625875301,
+        "scriptType": "p2pkh"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:15.673Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a",
+    "family": "bitcoincash",
+    "description": "CashAddr specification reference address",
+    "tags": [],
+    "activeChains": {
+      "bitcoincash": {
+        "addressType": "wallet",
+        "txCount": 11722,
+        "balanceBchSats": 5593730321,
+        "scriptType": "p2pkh"
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:17.671Z",
+    "lastScanErrors": []
+  },
+  {
+    "address": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh#12345",
+    "family": "xrp",
+    "description": "XRPL docs account with an illustrative destination tag",
+    "tags": [],
+    "activeChains": {
+      "xrp": {
+        "addressType": "wallet",
+        "balanceDrops": 56770125556,
+        "sequence": 44196
+      }
+    },
+    "lastScanned": "2026-08-07T08:39:18.116Z",
     "lastScanErrors": []
   }
 ]
