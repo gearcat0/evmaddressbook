@@ -2,18 +2,11 @@ import fs from 'fs'
 import path from 'path'
 import { AbiCoder } from 'ethers'
 import { providers } from './providers/provider-registry'
-import { getDataDir } from './data-store'
 import { debug } from './constants'
+import { contractDir, readAbiText } from './contract-store'
 
 const EIP1967_IMPL_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc'
 
-function ensureContractDir(address, chainId) {
-  const dir = path.join(getDataDir(), 'contracts', address, String(chainId))
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true })
-  }
-  return dir
-}
 
 function writeJsonSafe(filePath, data) {
   try {
@@ -24,7 +17,7 @@ function writeJsonSafe(filePath, data) {
 }
 
 function storeContractArtifacts(address, chainId, sourceInfo) {
-  const dir = ensureContractDir(address, chainId)
+  const dir = contractDir(address, chainId, { create: true })
   if (sourceInfo.ABI && sourceInfo.ABI !== 'Contract source code not verified') {
     try {
       writeJsonSafe(path.join(dir, 'abi.json'), JSON.parse(sourceInfo.ABI))
@@ -35,6 +28,21 @@ function storeContractArtifacts(address, chainId, sourceInfo) {
   if (sourceInfo.SourceCode) {
     writeJsonSafe(path.join(dir, 'source.json'), { sourceCode: sourceInfo.SourceCode })
   }
+}
+
+// Re-fetch one contract's verified source/ABI from the explorer for one chain
+// and store it, regardless of scan state. Returns the stored ABI text; throws
+// with the reason when there is nothing to store (unverified, not a contract,
+// explorer error).
+export async function refreshAbi(chainId, address) {
+  const sourceInfo = await providers.getSourceCode(chainId, address)
+  if (!sourceInfo || !sourceInfo.ABI || sourceInfo.ABI === 'Contract source code not verified') {
+    throw new Error(`No verified ABI for ${address} on chain ${chainId}`)
+  }
+  storeContractArtifacts(address, chainId, sourceInfo)
+  const text = readAbiText(address, chainId)
+  if (!text) throw new Error(`Could not store the ABI for ${address} on chain ${chainId}`)
+  return text
 }
 
 function decodeAddress(hex) {
