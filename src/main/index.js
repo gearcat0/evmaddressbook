@@ -5,7 +5,7 @@ import { registerIpcHandlers } from './ipc-handlers'
 import { createAppMenu } from './menu'
 import { startAnytypePolling } from './anytype-poll'
 
-const cliFlags = ['--help', '-h', '--version', '-v', '--addresses', '--chains', '--list-books', '--scan', '--rescan', '--abi']
+const cliFlags = ['--help', '-h', '--version', '-v', '--addresses', '--chains', '--list-books', '--scan', '--rescan', '--abi', '--data-dir']
 const isCliMode = process.argv.some(a => cliFlags.includes(a))
 
 // Suppress Chromium warnings on stderr in CLI mode (VA-API, systemd scope)

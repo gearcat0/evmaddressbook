@@ -1,9 +1,9 @@
-import fs from 'fs'
-import path from 'path'
 import { app } from 'electron'
 import { loadAddresses, loadChains, getDataDir, bookExists, listBooks } from './data-store'
 import { getDefaultDataDir } from './constants'
 import { scanAddress } from './chain-scanner'
+import { readAbiText } from './contract-store'
+import { refreshAbi } from './address-type-resolver'
 
 // Pull "--book <name>" out of the argument list, returning the remaining args.
 function extractBook(args) {
@@ -49,7 +49,7 @@ export function handleCli(argv) {
   }
 
   if (args.includes('--version') || args.includes('-v')) {
-    return writeStdout('1.11.0\n')
+    return writeStdout('1.12.0\n')
   }
 
   if (book !== null && !bookExists(book)) {
@@ -100,22 +100,27 @@ export function handleCli(argv) {
     return runScan(address, chainId && !chainId.startsWith('--') ? chainId : null, book)
   }
 
+  if (args.includes('--data-dir')) {
+    return writeStdout(getDataDir() + '\n')
+  }
+
   if (args.includes('--abi')) {
     const idx = args.indexOf('--abi')
     const address = args[idx + 1]
     const chainId = args[idx + 2]
-    if (!address || !chainId) {
-      console.error('Usage: evmaddressbook --abi <address> <chainId>')
+    if (!address || !chainId || address.startsWith('--') || chainId.startsWith('--')) {
+      console.error('Usage: evmaddressbook --abi <address> <chainId> [--refresh]')
       process.exitCode = 1
       return true
     }
-    const abiPath = path.join(getDataDir(), 'contracts', address, String(chainId), 'abi.json')
-    if (!fs.existsSync(abiPath)) {
+    if (args.includes('--refresh')) return runAbiRefresh(address, chainId)
+    const text = readAbiText(address, chainId)
+    if (text === null) {
       console.error(`No ABI found for ${address} on chain ${chainId}`)
       process.exitCode = 1
       return true
     }
-    return writeStdout(fs.readFileSync(abiPath, 'utf-8') + '\n')
+    return writeStdout(text + '\n')
   }
 
   const knownFlags = ['--help', '-h', '--version', '-v', '--addresses', '--chains']
@@ -132,6 +137,25 @@ export function handleCli(argv) {
   }
 
   return false
+}
+
+// --abi <address> <chainId> --refresh: re-fetch the verified ABI from the
+// explorer (no activity check, no address book changes), store it, print it.
+async function runAbiRefresh(address, chainId) {
+  const chain = loadChains().find(c => String(c.chainid) === String(chainId))
+  if (!chain) {
+    console.error(`Unknown chain ID: ${chainId}`)
+    process.exitCode = 1
+    return true
+  }
+  try {
+    const text = await refreshAbi(String(chainId), address)
+    return writeStdout(text + '\n')
+  } catch (err) {
+    console.error(err.message)
+    process.exitCode = 1
+    return true
+  }
 }
 
 async function runRescan(book) {
@@ -198,6 +222,10 @@ Options:
                               bitcoin|bitcoincash|solana|tron|cardano|xrp|
                               dogecoin|zcash|monero|near|sui|stellar|hedera)
   --abi <address> <chainId>   Print contract ABI as JSON and exit (EVM chains only)
+                              (address matched case-insensitively)
+  --abi <address> <chainId> --refresh
+                              Re-fetch the verified ABI from the explorer first
+  --data-dir                  Print the data directory path and exit
   --addresses                 Print all addresses as JSON and exit
   --addresses --tag <tag>     Print only addresses carrying the given tag
   --chains                    Print all chains as JSON and exit

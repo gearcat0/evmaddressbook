@@ -111,6 +111,14 @@ node out/main/index.js --list-books
 # Operate on a specific address book (defaults to "Default" when omitted)
 node out/main/index.js --addresses --book Work
 node out/main/index.js --rescan --book Work
+
+# Print a contract's stored ABI (address matched case-insensitively);
+# --refresh re-fetches the verified ABI from the explorer first
+node out/main/index.js --abi 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 1
+node out/main/index.js --abi 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 1 --refresh
+
+# Print the data directory (e.g. for tools that watch the address book files)
+node out/main/index.js --data-dir
 ```
 
 ## Data Storage
@@ -129,7 +137,7 @@ Files:
 - `chains.json` — Chain list from Etherscan
 - `settings.json` — API key and data directory config
 - `icons/chains/` — Downloaded chain icons
-- `contracts/{address}/{chainId}/` — Stored ABIs and source code
+- `contracts/{address}/{chainId}/` — Stored ABIs and source code (the address folder keeps the case it was first stored with; lookups are case-insensitive)
 
 ## Project Structure
 
