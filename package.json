@@ -59,13 +59,14 @@
     "vite": "^7.3.1"
   },
   "devDependencies": {
-    "electron": "^40.6.1",
+    "electron": "^44.4.2",
     "electron-builder": "^26.8.1",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.4",
     "vitest": "^4.1.10"
   },
   "allowScripts": {
     "esbuild@0.25.12": true,
-    "esbuild@0.27.3": true
+    "esbuild@0.28.2": true,
+    "electron-winstaller": false
   }
 }
